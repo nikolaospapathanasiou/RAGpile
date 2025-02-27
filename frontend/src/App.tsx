@@ -10,17 +10,34 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { Input } from '@/components/ui/input'
-
-const conversations = [
-  { id: 1, name: 'A question about my dog...' },
-  { id: 2, name: 'How to cook napolitana...' },
-  {
-    id: 3,
-    name: 'I need help with my homework...',
-  },
-]
+import { useEffect, useState } from 'react'
+import { useApi } from './hooks/use-api'
+import { getConversations, getMessages } from './lib/api'
 
 function App() {
+  const [conversationID, setConversationID] = useState<string | null>(null)
+  const {
+    data: conversations,
+    loading: conversationsLoading,
+    fn: getConversationsFN,
+  } = useApi(getConversations)
+  useEffect(() => {
+    getConversationsFN()
+  }, [])
+
+  const {
+    data: messages,
+    loading: messagesLoading,
+    fn: getMessagesFN,
+  } = useApi(() => getMessages(conversationID || ''))
+
+  useEffect(() => {
+    if (!conversationID) {
+      return
+    }
+    getMessagesFN()
+  }, [conversationID])
+
   return (
     <>
       <SidebarProvider>
@@ -32,13 +49,19 @@ function App() {
             <SidebarGroup>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {conversations.map((conversation) => {
-                    return (
-                      <SidebarMenuItem className="p-2" key={conversation.id}>
-                        <span>{conversation.name}</span>
-                      </SidebarMenuItem>
-                    )
-                  })}
+                  {conversations &&
+                    !conversationsLoading &&
+                    conversations.map((conversation) => {
+                      return (
+                        <SidebarMenuItem
+                          onClick={() => setConversationID(conversation.id)}
+                          className="p-2"
+                          key={conversation.id}
+                        >
+                          <span>{conversation.summary}</span>
+                        </SidebarMenuItem>
+                      )
+                    })}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -46,7 +69,15 @@ function App() {
         </Sidebar>
         <main className="flex flex-1 flex-col">
           <SidebarTrigger />
-          <div className="flex-5/6 overflow-y-auto">Chat</div>
+          <div className="flex-5/6 overflow-y-auto">
+            {messages &&
+              !messagesLoading &&
+              messages.map((message) => (
+                <p className={message.incoming ? 'text-left' : 'text-right'}>
+                  {message.text}
+                </p>
+              ))}
+          </div>
           <div className="p-5 flex-1/6 flex flex-col">
             <Input placeholder="Ask a question..." className="flex-1" />
           </div>
