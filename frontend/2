@@ -18,11 +18,9 @@ import { useEffect, useState } from 'react'
 function MessageBubble({ message }: { message: Message }) {
   return (
     <div
-      className={`p-1 px-3 flex ${message.incoming ? 'flex-row-reverse' : 'flex-row'}`}
+      className={`p-2 flex ${message.incoming ? 'flex-row-reverse' : 'flex-row'}`}
     >
-      <Card
-        className={`max-w-3/4 ${message.incoming ? 'bg-secondary-foreground text-secondary' : 'bg-primary-foreground'}`}
-      >
+      <Card className="max-w-100 bg-secondary-foreground text-secondary-foreground">
         <CardContent>{message.text}</CardContent>
         <CardFooter>
           <span className="flex-1 text-right text-xs">
@@ -63,7 +61,7 @@ function App() {
       <SidebarProvider>
         <Sidebar>
           <SidebarHeader>
-            <span>ragpile.ai</span>
+            <span>RAGpile</span>
           </SidebarHeader>
           <SidebarContent>
             <SidebarGroup>
@@ -87,9 +85,9 @@ function App() {
             </SidebarGroup>
           </SidebarContent>
         </Sidebar>
-        <main className="flex flex-1 flex-col max-h-screen">
+        <main className="flex flex-1 flex-col">
           <SidebarTrigger />
-          <div className="flex-5/6 shrink overflow-y-auto">
+          <div className="flex-5/6 overflow-y-auto">
             {messages &&
               !messagesLoading &&
               messages.map((message) => <MessageBubble message={message} />)}

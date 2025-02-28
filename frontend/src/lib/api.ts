@@ -16,7 +16,7 @@ type Conversation = {
   summary: string
 }
 
-type Message = {
+export type Message = {
   conversationID: string
   id: string
   text: string
@@ -42,9 +42,9 @@ function generateRandomMessage(): Message {
     conversationID:
       conversations[Math.floor(Math.random() * conversations.length)].id,
     id: Math.random().toString(36).substring(2, 9),
-    text: lorem.generateSentences(1),
+    text: lorem.generateSentences(4),
     incoming: Math.random() > 0.5,
-    createdAt: new Date(),
+    createdAt: createdAt,
   }
 }
 
