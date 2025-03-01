@@ -11,6 +11,8 @@ sqlalchemy = "*"
 python-dotenv = "*"
 psycopg2-binary = "*"
 alembic = "*"
+openai = "*"
+dotenv = "*"
 
 [dev-packages]
 pylint = "*"

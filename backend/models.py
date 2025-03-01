@@ -1,6 +1,7 @@
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import String, Uuid, ForeignKey, JSON
+from typing import List
 
 
 class Base(DeclarativeBase):
