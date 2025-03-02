@@ -16,13 +16,17 @@ import { Message, getConversations, getMessages } from '@/lib/api'
 import { useEffect, useState } from 'react'
 
 function MessageBubble({ message }: { message: Message }) {
+  if (!message.incoming) {
+    return (
+      <div className="px-10">
+        <p>{message.text}</p>
+      </div>
+    )
+  }
+
   return (
-    <div
-      className={`p-1 px-3 flex ${message.incoming ? 'flex-row-reverse' : 'flex-row'}`}
-    >
-      <Card
-        className={`max-w-3/4 ${message.incoming ? 'bg-secondary-foreground text-secondary' : 'bg-primary-foreground'}`}
-      >
+    <div className="p-1 px-3 flex flex-row-reverse">
+      <Card className="w-md bg-primary-foreground">
         <CardContent>{message.text}</CardContent>
         <CardFooter>
           <span className="flex-1 text-right text-xs">
