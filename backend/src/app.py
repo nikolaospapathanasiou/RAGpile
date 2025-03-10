@@ -10,11 +10,10 @@ from fastapi.responses import StreamingResponse
 from openai import OpenAI
 from pydantic import BaseModel
 
-from auth.router import auth_router
+from .auth.router import auth_router
 
 app = FastAPI()
 app.include_router(auth_router)
-
 # Allow all origins for development (change in production)
 app.add_middleware(
     CORSMiddleware,
