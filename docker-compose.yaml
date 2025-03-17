@@ -2,6 +2,7 @@ services:
   app:
     build: ./backend
     ports:
+      - "5678:5678"
       - "8000:8000"
     volumes:
       - ./backend:/app
@@ -12,6 +13,16 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_HOST=db
       - POSTGRES_DB=postgres
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - FRONTEND_URL=http://localhost:5173
+  frontend:
+    build: ./frontend
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "5173:5173"
   db:
     image: postgres
     environment:
@@ -29,7 +40,7 @@ services:
       PGADMIN_DEFAULT_PASSWORD: password
     volumes:
       - pgadmindata:/var/lib/pgadmin
-
+  
 volumes:
   pgdata: {}
   pgadmindata: {}

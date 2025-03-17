@@ -1,5 +1,7 @@
 import { LoremIpsum } from 'lorem-ipsum'
 
+const API_HOST = 'http://localhost:8000'
+
 const lorem = new LoremIpsum({
   sentencesPerParagraph: {
     max: 8,
@@ -64,4 +66,56 @@ export async function getConversations(): Promise<Conversation[]> {
 export async function getMessages(conversationID: string): Promise<Message[]> {
   await sleep(1000)
   return messages.filter((m) => m.conversationID === conversationID)
+}
+
+export async function* sendMessage(content: string): AsyncGenerator<string> {
+  const res = await fetch(`${API_HOST}/chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content }],
+      stream: true,
+    }),
+  })
+  if (!res.ok) {
+    throw new Error(res.statusText)
+  }
+  if (!res.body) {
+    return
+  }
+
+  const reader = res.body.getReader()
+  while (true) {
+    const { value, done } = await reader.read()
+    if (done) {
+      break
+    }
+    const text = new TextDecoder().decode(value)
+    const data = JSON.parse(text.substring(text.indexOf('{')))
+    if (data.finish_reason) {
+      break
+    }
+    yield data.content
+  }
+}
+
+export async function loginWithGoogle(): Promise<string> {
+  const res = await fetch(`${API_HOST}/auth/google_login`, {
+    method: 'GET',
+  })
+  return (await res.json()).auth_url
+}
+
+type User = {
+  id: string
+  name: string
+  email: string
+}
+
+export async function authenticateWithGoogle(code: string): Promise<User> {
+  const res = await fetch(`${API_HOST}/auth/google_callback?code=${code}`)
+  return (await res.json()).user
 }

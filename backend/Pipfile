@@ -13,9 +13,12 @@ psycopg2-binary = "*"
 alembic = "*"
 openai = "*"
 dotenv = "*"
+requests = "*"
+pyjwt = "*"
 
 [dev-packages]
 pylint = "*"
+debugpy = "*"
 
 [requires]
 python_version = "3.12"

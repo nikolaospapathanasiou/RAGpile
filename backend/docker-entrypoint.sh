@@ -2,4 +2,4 @@
 
 alembic upgrade head
 
-fastapi dev app.py --host 0.0.0.0 --port 8000
+python -m debugpy --listen 0.0.0.0:5678 src/app.py
