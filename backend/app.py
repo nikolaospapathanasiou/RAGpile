@@ -4,6 +4,7 @@ import os
 import time
 from typing import List
 
+import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -66,3 +67,7 @@ async def openai_streaming(request: InferenceRequest):
             yield f"data: {json.dumps(response_data)}\n\n"
 
     return StreamingResponse(generator(), media_type="text/event-stream")
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)

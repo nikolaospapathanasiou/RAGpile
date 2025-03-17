@@ -7,8 +7,9 @@ WORKDIR /app
 COPY Pipfile .
 COPY Pipfile.lock .
 
-RUN pipenv install --system
+RUN pipenv install --dev --system
 
 COPY . .
 
+ENV PYTHONPATH="/app/src:${PYTHONPATH}"
 ENTRYPOINT [ "/app/docker-entrypoint.sh" ]
