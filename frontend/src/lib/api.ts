@@ -1,7 +1,5 @@
 import { LoremIpsum } from 'lorem-ipsum'
 
-const API_HOST = 'http://localhost:8000'
-
 const lorem = new LoremIpsum({
   sentencesPerParagraph: {
     max: 8,
@@ -69,7 +67,7 @@ export async function getMessages(conversationID: string): Promise<Message[]> {
 }
 
 export async function* sendMessage(content: string): AsyncGenerator<string> {
-  const res = await fetch(`${API_HOST}/chat`, {
+  const res = await fetch(`/api/chat`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -103,7 +101,7 @@ export async function* sendMessage(content: string): AsyncGenerator<string> {
 }
 
 export async function loginWithGoogle(): Promise<string> {
-  const res = await fetch(`${API_HOST}/auth/google_login`, {
+  const res = await fetch(`/api/auth/google_login`, {
     method: 'GET',
   })
   return (await res.json()).auth_url
@@ -116,6 +114,6 @@ type User = {
 }
 
 export async function authenticateWithGoogle(code: string): Promise<User> {
-  const res = await fetch(`${API_HOST}/auth/google_callback?code=${code}`)
+  const res = await fetch(`/api/auth/google_callback?code=${code}`)
   return (await res.json()).user
 }

@@ -4,6 +4,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import URL
 from sqlalchemy.orm import Session, sessionmaker
 
+from auth.jwt import TokenManager, get_current_user_factory
+
 url = URL.create(
     drivername="postgresql",
     username=os.environ["POSTGRES_USER"],
@@ -24,3 +26,13 @@ def get_session() -> Session:
         yield db
     finally:
         db.close()
+
+
+token_manager = TokenManager(os.getenv("JWT_SECRET"))
+
+
+def get_token_manager() -> TokenManager:
+    return token_manager
+
+
+get_current_user = get_current_user_factory(token_manager, get_session)

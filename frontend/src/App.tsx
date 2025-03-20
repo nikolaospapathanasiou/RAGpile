@@ -3,7 +3,6 @@ import Home from '@/pages/Home.tsx'
 import { Route, BrowserRouter as Router, Routes } from 'react-router-dom'
 
 function App() {
-  return <Home />
   return (
     <Router>
       <Routes>

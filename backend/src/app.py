@@ -2,19 +2,20 @@ import json
 import logging
 import os
 import time
-from typing import List
+from typing import Annotated, List
 
-import uvicorn
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from openai import OpenAI
 from pydantic import BaseModel
 
 from auth.router import auth_router
+from dependencies import get_current_user
+from models import User
 
 app = FastAPI()
-app.include_router(auth_router)
+app.include_router(auth_router, prefix="/api")
 # Allow all origins for development (change in production)
 app.add_middleware(
     CORSMiddleware,
@@ -25,9 +26,10 @@ app.add_middleware(
 )
 
 
-@app.get("/")
-async def hello():
-    return "Hello, World!"
+@app.get("/api")
+async def hello(current_user: Annotated[User, Depends(get_current_user)]):
+    print(current_user)
+    return "Hello, Woraaa"
 
 
 class Message(BaseModel):
@@ -44,7 +46,7 @@ class InferenceRequest(BaseModel):
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
-@app.post("/chat")
+@app.post("/api/chat")
 async def openai_streaming(request: InferenceRequest):
     completion = client.chat.completions.create(
         model=request.model,
@@ -66,7 +68,3 @@ async def openai_streaming(request: InferenceRequest):
             yield f"data: {json.dumps(response_data)}\n\n"
 
     return StreamingResponse(generator(), media_type="text/event-stream")
-
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)

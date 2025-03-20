@@ -1,46 +1,51 @@
 import os
+from typing import Annotated
 
 import requests
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
-from dependencies import get_session
+from auth.jwt import TokenManager, set_current_user
+from dependencies import get_session, get_token_manager
 from models import User
 
-auth_router = APIRouter(
-    prefix="/auth",
-)
+auth_router = APIRouter()
 
 
-@auth_router.get("/google_login")
+@auth_router.get("/auth/google_login")
 async def login():
     return {
         "auth_url": (
             f"https://accounts.google.com/o/oauth2/v2/auth?"
             f"response_type=code"
             f"&client_id={os.getenv('GOOGLE_CLIENT_ID')}"
-            f"&redirect_uri={os.getenv('FRONTEND_URL')}"
+            f"&redirect_uri={os.getenv('BASE_URL')}"
             f"&scope=https://www.googleapis.com/auth/userinfo.email"
         )
     }
 
 
 @auth_router.get("/auth/google_callback")
-async def callback(code: str, session: Session = Depends(get_session)):
+async def callback(
+    code: str,
+    response: Response,
+    session: Annotated[Session, Depends(get_session)],
+    token_manager: Annotated[TokenManager, Depends(get_token_manager)],
+):
     data = {
         "code": code,
         "client_id": os.getenv("GOOGLE_CLIENT_ID"),
         "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
-        "redirect_uri": os.getenv("FRONTEND_URL"),
+        "redirect_uri": os.getenv("BASE_URL"),
         "grant_type": "authorization_code",
     }
-    response = requests.post(
+    token_response = requests.post(
         "https://www.googleapis.com/oauth2/v4/token",
         data=data,
         timeout=10,
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
-    response_json = response.json()
+    response_json = token_response.json()
 
     if "access_token" not in response_json:
         return HTTPException(
@@ -57,6 +62,8 @@ async def callback(code: str, session: Session = Depends(get_session)):
     user_info = user_info_response.json()
     user = session.query(User).get(user_info["id"])
     if not user:
-        session.add(User(id=user_info["id"], email=user_info["email"]))
+        user = User(id=user_info["id"], email=user_info["email"])
+        session.add(user)
         session.commit()
+    set_current_user(response, token_manager, user.id)
     return {"user": user_info}
