@@ -1,5 +1,3 @@
-import os
-
 import debugpy
 import uvicorn
 from watchfiles import run_process

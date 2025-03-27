@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import URL
 from sqlalchemy.orm import Session, sessionmaker
 
-from auth.jwt import TokenManager, get_current_user_factory
+from auth.token import TokenManager, get_current_user_factory
 
 url = URL.create(
     drivername="postgresql",

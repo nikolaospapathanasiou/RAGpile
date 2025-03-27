@@ -16,14 +16,6 @@ from models import User
 
 app = FastAPI()
 app.include_router(auth_router, prefix="/api")
-# Allow all origins for development (change in production)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Change this to your frontend domain in production
-    allow_credentials=True,
-    allow_methods=["*"],  # Allows all HTTP methods (GET, POST, etc.)
-    allow_headers=["*"],  # Allows all headers
-)
 
 
 @app.get("/api")

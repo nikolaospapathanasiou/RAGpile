@@ -1,18 +1,24 @@
 import { useState } from 'react'
 
-export function useApi<T>(f: () => Promise<T>): {
+export function useApi<T>(
+  f: () => Promise<T>,
+  startLoading: boolean = false
+): {
   data: T | null
   loading: boolean
   fn: () => Promise<T>
 } {
   const [data, setData] = useState<T | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(startLoading)
   const fn = async () => {
     setLoading(true)
-    const data = await f()
-    setData(data)
-    setLoading(false)
-    return data
+    try {
+      const data = await f()
+      setData(data)
+      return data
+    } finally {
+      setLoading(false)
+    }
   }
   return { data, loading, fn }
 }

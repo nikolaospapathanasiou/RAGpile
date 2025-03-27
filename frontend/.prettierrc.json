@@ -3,8 +3,14 @@
   "tabWidth": 2,
   "semi": false,
   "singleQuote": true,
-  "importOrder": ["<THIRD_PARTY_MODULES>", "^@components$/ui/(.*)$"],
+  "importOrder": [
+    "<THIRD_PARTY_MODULES>",
+    "^@/",
+    "^[./]"
+  ],
   "importOrderSeparation": true,
   "importOrderSortSpecifiers": true,
-  "plugins": ["@trivago/prettier-plugin-sort-imports"]
+  "plugins": [
+    "@trivago/prettier-plugin-sort-imports"
+  ]
 }

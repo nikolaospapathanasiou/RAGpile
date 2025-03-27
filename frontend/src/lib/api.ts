@@ -1,5 +1,7 @@
 import { LoremIpsum } from 'lorem-ipsum'
 
+import { User } from '@/models'
+
 const lorem = new LoremIpsum({
   sentencesPerParagraph: {
     max: 8,
@@ -66,6 +68,13 @@ export async function getMessages(conversationID: string): Promise<Message[]> {
   return messages.filter((m) => m.conversationID === conversationID)
 }
 
+function validateResponse(res: Response): Response {
+  if (!res.ok) {
+    throw new Error(res.statusText)
+  }
+  return res
+}
+
 export async function* sendMessage(content: string): AsyncGenerator<string> {
   const res = await fetch(`/api/chat`, {
     method: 'POST',
@@ -78,9 +87,7 @@ export async function* sendMessage(content: string): AsyncGenerator<string> {
       stream: true,
     }),
   })
-  if (!res.ok) {
-    throw new Error(res.statusText)
-  }
+  validateResponse(res)
   if (!res.body) {
     return
   }
@@ -104,16 +111,20 @@ export async function loginWithGoogle(): Promise<string> {
   const res = await fetch(`/api/auth/google_login`, {
     method: 'GET',
   })
-  return (await res.json()).auth_url
-}
-
-type User = {
-  id: string
-  name: string
-  email: string
+  return (await validateResponse(res).json()).auth_url
 }
 
 export async function authenticateWithGoogle(code: string): Promise<User> {
   const res = await fetch(`/api/auth/google_callback?code=${code}`)
-  return (await res.json()).user
+  return await validateResponse(res).json()
+}
+
+export async function me(): Promise<User> {
+  const res = await fetch('api/auth/me', { method: 'GET' })
+  return await validateResponse(res).json()
+}
+
+export async function logout(): Promise<void> {
+  const res = await fetch('api/auth/logout', { method: 'POST' })
+  validateResponse(res)
 }

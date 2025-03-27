@@ -3,13 +3,30 @@ from typing import Annotated
 
 import requests
 from fastapi import APIRouter, Depends, HTTPException, Response
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from auth.jwt import TokenManager, set_current_user
-from dependencies import get_session, get_token_manager
+from auth.token import TokenManager, remove_current_user, set_current_user
+from dependencies import get_current_user, get_session, get_token_manager
 from models import User
 
 auth_router = APIRouter()
+
+
+class ResponseUser(BaseModel):
+    id: str
+    email: str
+
+
+@auth_router.get("/auth/me", response_model=ResponseUser)
+async def me(current_user: Annotated[User, Depends(get_current_user)]):
+    return current_user
+
+
+@auth_router.post("/auth/logout")
+async def logout(response: Response):
+    remove_current_user(response)
+    response.status_code = 204
 
 
 @auth_router.get("/auth/google_login")
@@ -25,7 +42,7 @@ async def login():
     }
 
 
-@auth_router.get("/auth/google_callback")
+@auth_router.get("/auth/google_callback", response_model=ResponseUser)
 async def callback(
     code: str,
     response: Response,
@@ -66,4 +83,4 @@ async def callback(
         session.add(user)
         session.commit()
     set_current_user(response, token_manager, user.id)
-    return {"user": user_info}
+    return user
