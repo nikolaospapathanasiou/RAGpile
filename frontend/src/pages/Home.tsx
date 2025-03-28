@@ -1,17 +1,30 @@
+import { useContext } from 'react'
+
 import { Button } from '@/components/ui/button'
-import { authenticateWithGoogle, loginWithGoogle } from '@/lib/api'
+import { UserContext } from '@/contexts/auth-context'
+import { authenticateWithGoogle, loginWithGoogle, logout } from '@/lib/api'
 
 export default function Home() {
   const code = new URLSearchParams(window.location.search).get('code')
 
-  console.log(window.location)
   if (code) {
-    console.log('authenticating...')
     authenticateWithGoogle(code).then((user) => {
-      console.log(user)
       window.opener.postMessage(user, window.opener.location.origin)
     })
     return <div>Loading...</div>
+  }
+
+  const { user, setUser } = useContext(UserContext)
+
+  if (user) {
+    return (
+      <div>
+        Logged in as {user.email}
+        <Button onClick={() => logout().then(() => setUser(null))}>
+          Logout
+        </Button>
+      </div>
+    )
   }
 
   return (
@@ -25,10 +38,11 @@ export default function Home() {
             'popup=true,width=600,height=600'
           )
           const listener = (event: MessageEvent): void => {
-            if (!popup) return
-            popup.close()
+            if (popup) {
+              popup.close()
+            }
+            setUser(event.data)
             window.removeEventListener('message', listener)
-            console.log(event)
           }
 
           window.addEventListener('message', listener)
