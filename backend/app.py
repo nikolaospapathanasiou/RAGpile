@@ -53,10 +53,10 @@ app = FastAPI()
 # Allow all origins for development (change in production)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Change this to your frontend domain in production
+    allow_origins=["*"],  
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all HTTP methods (GET, POST, etc.)
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],  
+    allow_headers=["*"],  
 )
 
 
@@ -68,7 +68,7 @@ async def hello():
 class InferenceRequest(BaseModel):
     model: str
     content: str
-    chat_id: Optional[str]
+    chat_id: Optional[str] = None
 
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -87,8 +87,7 @@ async def openai_streaming(request: InferenceRequest, db: Session = Depends(get_
             user_id="a1b2c3d4-e5f6-4321-8765-abcdef123456",
         )
         db.add(chat)
-        db.commit()
-
+        db.flush()
     else:
         chat = db.query(Chat).filter(Chat.id == request.chat_id).first()
 
@@ -98,7 +97,15 @@ async def openai_streaming(request: InferenceRequest, db: Session = Depends(get_
         content=request.content,
         is_from_user=True,
     )
+
     db.add(user_message)
+    db.commit()
+    
+
+    # EAN VGALO AFTA TA 2 VARIABLES POU DN USARONTAI POYTHENA PETAEI ERROR
+    # GT DN MPOREI NA VREI TO user_message STO SESSION META POU PROSPATHEI A KANEI yield sto line: 130. POLI PERIERGO PASA MOU
+    asdf = user_message.id
+    asdasd = user_message.chat_id
 
     chat_history = (
         db.query(Message)
@@ -120,12 +127,10 @@ async def openai_streaming(request: InferenceRequest, db: Session = Depends(get_
         stream=True,
     )
 
-    full_ai_response = []
-
     def stream_response():
         yield f'data: {{"id": {user_message.id}, "chat_id": {user_message.chat_id}}}'
         message_id = str(uuid.uuid4())
-
+        full_ai_response = []
         for chunk in completion:
             logging.debug(f"Received chunk: {chunk}")
 
