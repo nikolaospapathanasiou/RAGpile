@@ -17,11 +17,11 @@ url = URL.create(
 
 
 engine = create_engine(url)
-Session = sessionmaker(bind=engine)
+SessionFactory = sessionmaker(bind=engine)
 
 
 def get_session() -> Session:
-    db = Session()
+    db = SessionFactory()
     try:
         yield db
     finally:

@@ -15,6 +15,7 @@ openai = "*"
 dotenv = "*"
 requests = "*"
 pyjwt = "*"
+pydantic-ai = "*"
 
 [dev-packages]
 pylint = "*"
