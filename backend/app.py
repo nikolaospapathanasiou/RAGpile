@@ -34,7 +34,7 @@ url = URL.create(
 )
 
 
-engine = create_engine(url)
+engine = create_engine(url, echo=True)
 # Create a SessionLocal class
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -76,58 +76,50 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 @app.post("/chat")
 async def openai_streaming(request: InferenceRequest, db: Session = Depends(get_db)):
-
-    if not request.chat_id:
-        words = request.content.split()
-        title = " ".join(words[:5]) + ("..." if len(words) > 5 else "")
-
-        chat = Chat(
-            id=str(uuid.uuid4()),
-            title=title,
-            user_id="a1b2c3d4-e5f6-4321-8765-abcdef123456",
-        )
-        db.add(chat)
-        db.flush()
-    else:
-        chat = db.query(Chat).filter(Chat.id == request.chat_id).first()
-
-    user_message = Message(
-        id=str(uuid.uuid4()),
-        chat_id=chat.id,
-        content=request.content,
-        is_from_user=True,
-    )
-
-    db.add(user_message)
-    db.commit()
-    
-
-    # EAN VGALO AFTA TA 2 VARIABLES POU DN USARONTAI POYTHENA PETAEI ERROR
-    # GT DN MPOREI NA VREI TO user_message STO SESSION META POU PROSPATHEI A KANEI yield sto line: 130. POLI PERIERGO PASA MOU
-    asdf = user_message.id
-    asdasd = user_message.chat_id
-
-    chat_history = (
-        db.query(Message)
-        .filter(Message.chat_id == chat.id)
-        .order_by(Message.created_at)
-        .all()
-    )
-
-    messages = [
-        {"role": "user" if msg.is_from_user else "assistant", "content": msg.content}
-        for msg in chat_history
-    ]
-
-    messages.append({"role": "user", "content": request.content})
-
-    completion = client.chat.completions.create(
-        model=request.model,
-        messages=messages,
-        stream=True,
-    )
-
     def stream_response():
+        if not request.chat_id:
+            words = request.content.split()
+            title = " ".join(words[:5]) + ("..." if len(words) > 5 else "")
+
+            chat = Chat(
+                id=str(uuid.uuid4()),
+                title=title,
+                user_id="a1b2c3d4-e5f6-4321-8765-abcdef123456",
+            )
+            db.add(chat)
+        else:
+            chat = db.query(Chat).filter(Chat.id == request.chat_id).first()
+
+        user_message = Message(
+            id=str(uuid.uuid4()),
+            chat_id=chat.id,
+            content=request.content,
+            is_from_user=True,
+        )
+
+        db.add(user_message)
+
+        chat_history = (
+            db.query(Message)
+            .filter(Message.chat_id == chat.id)
+            .order_by(Message.created_at)
+            .all()
+        )
+
+        messages = [
+            {"role": "user" if msg.is_from_user else "assistant", "content": msg.content}
+            for msg in chat_history
+        ]
+
+        messages.append({"role": "user", "content": request.content})
+
+        completion = client.chat.completions.create(
+            model=request.model,
+            messages=messages,
+            stream=True,
+        )
+
+        print(f"HEREEE: {user_message.id}")
         yield f'data: {{"id": {user_message.id}, "chat_id": {user_message.chat_id}}}'
         message_id = str(uuid.uuid4())
         full_ai_response = []
