@@ -1,6 +1,4 @@
-from typing import List
-
-from sqlalchemy import JSON, ForeignKey, String, Uuid
+from sqlalchemy import String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -13,4 +11,4 @@ class User(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     email: Mapped[str] = mapped_column(String, nullable=False)
-
+    name: Mapped[str] = mapped_column(String, nullable=True)

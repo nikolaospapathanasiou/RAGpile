@@ -5,21 +5,19 @@ name = "pypi"
 
 [packages]
 fastapi = {extras = ["standard"], version = "*"}
-black = "==25.1.0"
-isort = "==6.0.0"
 sqlalchemy = "*"
-python-dotenv = "*"
-psycopg2-binary = "*"
 alembic = "*"
 openai = "*"
-dotenv = "*"
 requests = "*"
 pyjwt = "*"
-pydantic-ai = "*"
+asyncpg = "*"
 
 [dev-packages]
 pylint = "*"
 debugpy = "*"
+black = "==25.1.0"
+isort = "==6.0.0"
+pylsp-mypy = "*"
 
 [requires]
 python_version = "3.12"

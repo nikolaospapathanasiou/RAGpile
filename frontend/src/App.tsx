@@ -4,7 +4,6 @@ import { Route, BrowserRouter as Router, Routes } from 'react-router-dom'
 import { UserContext, UserProvider } from '@/contexts/auth-context.tsx'
 import { useApi } from '@/hooks/use-api.ts'
 import { me } from '@/lib/api'
-import Chat from '@/pages/Chat.tsx'
 import Home from '@/pages/Home.tsx'
 
 function App() {
@@ -30,11 +29,14 @@ function AppRoutes() {
     return
   }
 
+  if (!user) {
+    window.location.href = '/'
+  }
+
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Home />} />
-        {user && <Route path="/chat" element={<Chat />} />}
+        <Route path="/ragpile/" element={<Home />} />
       </Routes>
     </Router>
   )
