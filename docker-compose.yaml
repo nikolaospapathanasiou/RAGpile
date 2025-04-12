@@ -66,7 +66,7 @@ services:
     image: ghcr.io/open-webui/open-webui:main
     environment:
       ENABLE_OPENAI_API: True
-      OPENAI_API_BASE_URL: http://backend:8000/api
+      OPENAI_API_BASE_URL: http://backend:8000/ragpile/api
       OPENAI_API_KEY: not_used
       ENABLE_OLLAMA_API: False
       DATABASE_URL: postgresql://postgres:postgres@db:5432/openwebui

@@ -1,6 +1,7 @@
 import os
 from typing import AsyncIterator
 
+from openai import OpenAI
 from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -34,3 +35,10 @@ def get_token_manager() -> TokenManager:
 
 
 get_current_user = get_current_user_factory(token_manager, get_session)
+
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+
+def get_openai_client() -> OpenAI:
+    return client
