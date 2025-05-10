@@ -1,17 +1,17 @@
 import datetime
 from calendar import timegm
-from typing import Annotated, Callable
+from typing import Annotated, AsyncIterator, Awaitable, Callable
 
 import jwt
 from fastapi import Cookie, Depends, HTTPException, Response
 from jwt.exceptions import PyJWTError
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import User
 
 
 class Token:
-    def __init__(self, user_id: str, exp: int | None = None):
+    def __init__(self, id: str, exp: int | None = None):
         if not exp:
             self.exp = timegm(
                 (
@@ -21,7 +21,7 @@ class Token:
             )
         else:
             self.exp = exp
-        self.user_id = user_id
+        self.id = id
 
     def expires_soon(self) -> bool:
         return self.exp < timegm(
@@ -32,11 +32,11 @@ class Token:
         )
 
     def payload(self) -> dict:
-        return {"user_id": self.user_id, "exp": self.exp}
+        return {"user_id": self.id, "exp": self.exp}
 
     @classmethod
-    def from_payload(cls, payload: dict) -> "Self":
-        return cls(payload["user_id"], payload["exp"])
+    def from_payload(cls, payload: dict) -> "Token":
+        return cls(payload["id"], payload["exp"])
 
 
 class TokenManager:
@@ -55,24 +55,24 @@ class TokenManager:
 
 
 def get_current_user_factory(
-    token_manager: TokenManager, get_db: Callable[[], Session]
-) -> Callable[[Session, str | None], User]:
-    def _get_current_user(
+    token_manager: TokenManager, get_session: Callable[[], AsyncIterator[AsyncSession]]
+) -> Callable[[Response, AsyncSession, str | None], Awaitable[User]]:
+    async def _get_current_user(
         response: Response,
-        db: Annotated[Session, Depends(get_db)],
-        ragpile_token: Annotated[str | None, Cookie(optional=True)] = None,
+        session: Annotated[AsyncSession, Depends(get_session)],
+        token: Annotated[str | None, Cookie(optional=True)] = None,
     ) -> User:
-        if not ragpile_token:
+        if not token:
             raise HTTPException(status_code=401, detail="Not authenticated")
         try:
-            token = token_manager.decode_token(ragpile_token)
+            token_decoded = token_manager.decode_token(token)
         except PyJWTError as exc:
             raise HTTPException(status_code=401, detail="Not authenticated") from exc
 
-        if token.expires_soon():
-            set_current_user(response, token_manager, token.user_id)
+        if token_decoded.expires_soon():
+            set_current_user(response, token_manager, token_decoded.id)
 
-        user = db.query(User).filter(User.id == token.user_id).first()
+        user = await session.get(User, token_decoded.id)
         if not user:
             raise HTTPException(status_code=401, detail="Not authenticated")
         return user

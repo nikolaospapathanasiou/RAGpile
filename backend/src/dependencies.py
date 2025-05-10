@@ -1,13 +1,14 @@
 import os
+from typing import AsyncIterator
 
-from sqlalchemy import create_engine
+from openai import OpenAI
 from sqlalchemy.engine import URL
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from auth.token import TokenManager, get_current_user_factory
 
 url = URL.create(
-    drivername="postgresql",
+    drivername="postgresql+asyncpg",
     username=os.environ["POSTGRES_USER"],
     password=os.environ["POSTGRES_PASSWORD"],
     host="db",
@@ -16,19 +17,17 @@ url = URL.create(
 )
 
 
-engine = create_engine(url)
-Session = sessionmaker(bind=engine)
+engine = create_async_engine(url, echo=True)
+SessionFactory = async_sessionmaker(bind=engine)
 
 
-def get_session() -> Session:
-    db = Session()
-    try:
-        yield db
-    finally:
-        db.close()
+async def get_session() -> AsyncIterator[AsyncSession]:
+    async with SessionFactory() as session:
+        async with session.begin():
+            yield session
 
 
-token_manager = TokenManager(os.getenv("JWT_SECRET"))
+token_manager = TokenManager(os.environ["JWT_SECRET"])
 
 
 def get_token_manager() -> TokenManager:
@@ -36,3 +35,10 @@ def get_token_manager() -> TokenManager:
 
 
 get_current_user = get_current_user_factory(token_manager, get_session)
+
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+
+def get_openai_client() -> OpenAI:
+    return client
