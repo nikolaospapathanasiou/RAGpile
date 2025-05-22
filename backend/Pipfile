@@ -5,12 +5,13 @@ name = "pypi"
 
 [packages]
 fastapi = {extras = ["standard"], version = "*"}
-sqlalchemy = "*"
+sqlalchemy = {version = "*", extras = ["asyncio"]}
 alembic = "*"
 openai = "*"
 requests = "*"
 pyjwt = "*"
 asyncpg = "*"
+psycopg2-binary = "*"
 
 [dev-packages]
 pylint = "*"
