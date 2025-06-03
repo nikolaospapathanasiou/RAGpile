@@ -1,25 +1,44 @@
 import logging
-from typing import Annotated, Optional
+from contextlib import asynccontextmanager
+from typing import Annotated, Optional, cast
 
 from fastapi import Depends, FastAPI, HTTPException
+from psycopg_pool import ConnectionPool
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.router import auth_router
-from dependencies import get_current_user, get_session
+from dependencies import CHECKPOINTER, ENGINE, get_scheduler, get_session
+from log import init_logger
 from models import User
 from openai_wrapper import openai_router
 
-app = FastAPI()
-app.include_router(auth_router, prefix="/ragpile/api")
-app.include_router(openai_router, prefix="/ragpile/api")
+init_logger()
 logger = logging.getLogger(__name__)
 
 
-@app.get("/ragpile/api")
-async def hello(current_user: Annotated[User, Depends(get_current_user)]):
-    print(current_user)
-    return "Hello, Woraaa"
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    logger.info("Staring up checkpointer")
+    cast(ConnectionPool, CHECKPOINTER.conn).open()
+    logger.info("Starting up postgres engine")
+    connection = ENGINE.connect()
+    logger.info("Starting up scheduler")
+    scheduler = get_scheduler()
+    scheduler.start()
+    yield
+    logger.info("Shutting down scheduler")
+    scheduler.shutdown()
+    logger.info("Shutting down postgres engine")
+    await connection.close()
+    await ENGINE.dispose()
+    logger.info("Shutting down checkpointer")
+    CHECKPOINTER.conn.close()
+
+
+app = FastAPI(lifespan=lifespan)
+app.include_router(auth_router, prefix="/ragpile/api")
+app.include_router(openai_router, prefix="/ragpile/api")
 
 
 class Webhook(BaseModel):
