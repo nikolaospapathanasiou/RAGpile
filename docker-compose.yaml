@@ -18,8 +18,10 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - BASE_URL=http://localhost:8000
+      - BASE_URL=http://127.0.0.1
       - JWT_SECRET=secret
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - ENABLE_DEBUGPY=1
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.app.rule=PathPrefix(`/ragpile/api`)"
@@ -34,6 +36,8 @@ services:
       - "traefik.http.routers.frontend.rule=PathPrefix(`/ragpile`)"
       - "traefik.http.routers.frontend.entrypoints=web"
       - "traefik.http.services.frontend.loadbalancer.server.port=5173"
+    ports:
+      - 24678:24678
   db:
     image: postgres
     environment:
@@ -61,7 +65,7 @@ services:
       - "--providers.docker.exposedbydefault=false"
       - "--entryPoints.web.address=:80"
     ports:
-      - "8000:80"
+      - "80:80"
       - "8080:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock

@@ -2,9 +2,8 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react-swc'
 import express from 'express'
 import path from 'path'
-import { dirname, resolve } from 'path'
+import { dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { defineConfig } from 'vite'
 import { createServer as createViteServer } from 'vite'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -15,7 +14,7 @@ async function startServer() {
 
   const vite = await createViteServer({
     root: __dirname, // Ensure correct root
-    server: { middlewareMode: 'html' },
+    server: { middlewareMode: 'html', hmr: { port: 24678 } },
     base: '/ragpile/',
     plugins: [react(), tailwindcss()],
     resolve: {

@@ -17,6 +17,7 @@ langgraph = "*"
 langsmith = "*"
 langchain = {extras = ["openai", "google-genai", "anthropic"], version = "*"}
 langgraph-checkpoint-postgres = "*"
+python-telegram-bot = "*"
 
 [dev-packages]
 pylint = "*"

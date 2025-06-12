@@ -15,33 +15,26 @@ from models import User
 auth_router = APIRouter()
 
 
-class ResponseApp(BaseModel):
+class ResponseIntegration(BaseModel):
     name: str
-    token_expiry: int
-    refresh_token_expiry: int
-
-    @classmethod
-    def from_config(cls, key, config):
-        return cls(
-            name=key,
-            token_expiry=config.get("token_expiry", 0),
-            refresh_token_expiry=config.get("refresh_token_expiry", 0),
-        )
+    active: bool
 
 
 class ResponseUser(BaseModel):
     id: str
     email: str
-    apps: dict[str, ResponseApp]
+    integrations: dict[str, ResponseIntegration]
 
     @classmethod
     def from_user(cls, user: User) -> "ResponseUser":
         return cls(
             id=user.id,
             email=user.email,
-            apps={
-                key: ResponseApp.from_config(key, user.config[key])
-                for key in user.config.keys()
+            integrations={
+                name: ResponseIntegration(
+                    name=name, active=user.has_active_integration(name)
+                )
+                for name in user.integrations.keys()
             },
         )
 
@@ -108,19 +101,23 @@ async def callback(
     utc_now = datetime.now(timezone.utc)
     utc_timestamp = int(utc_now.timestamp())
 
-    current_user.config[reason.value] = current_user.config.get(reason.value, {})
-    current_user.config[reason.value]["token"] = access_token
-    current_user.config[reason.value]["token_expiry"] = (
+    current_user.integrations[reason.value] = current_user.integrations.get(
+        reason.value, {}
+    )
+    current_user.integrations[reason.value]["token"] = access_token
+    current_user.integrations[reason.value]["token_expiry"] = str(
         utc_timestamp + response_json["expires_in"]
     )
-    current_user.config[reason.value]["refresh_token"] = refresh_token
-    current_user.config[reason.value]["refresh_token_expiry"] = (
+    current_user.integrations[reason.value]["refresh_token"] = refresh_token
+    current_user.integrations[reason.value]["refresh_token_expiry"] = str(
         utc_timestamp + response_json["refresh_token_expires_in"]
     )
     await session.execute(
         update(User)
         .where(User.id == current_user.id)
-        .values(config=current_user.config)
+        .values(integrations=current_user.integrations)
     )
+    session.expunge(current_user)
     await session.commit()
+
     return ResponseUser.from_user(current_user)

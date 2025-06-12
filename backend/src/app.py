@@ -1,7 +1,9 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 from typing import Annotated, Optional, cast
 
+import debugpy
 from fastapi import Depends, FastAPI, HTTPException
 from psycopg_pool import ConnectionPool
 from pydantic import BaseModel
@@ -19,6 +21,10 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    if os.environ.get("ENABLE_DEBUGPY") == "1":
+        debug_port = 5678
+        print(f"Debugger listening on port {debug_port} ...")
+        debugpy.listen(("0.0.0.0", debug_port))
     logger.info("Staring up checkpointer")
     cast(ConnectionPool, CHECKPOINTER.conn).open()
     logger.info("Starting up postgres engine")

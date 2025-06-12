@@ -15,7 +15,7 @@ class State(TypedDict):
     messages: Annotated[list, add_messages]
 
 
-llm = init_chat_model("google_genai:gemini-2.0-flash")
+# llm = init_chat_model("google_genai:gemini-2.0-flash")
 
 
 def chatbot(state: State) -> State:
@@ -27,20 +27,3 @@ def create_graph(checkpointer: PostgresSaver) -> CompiledGraph:
     graph_builder.add_node("chatbot", chatbot)
     graph_builder.add_edge(START, "chatbot")
     return graph_builder.compile(checkpointer)
-
-
-def stream_graph_updates(user_input: str):
-    for event in graph.stream(
-        {"messages": [{"role": "user", "content": user_input}]}, stream_mode="messages"
-    ):
-        for value in event.values():
-            print("Assistant:", value["messages"][-1].content)
-
-
-if __name__ == "__main__":
-    while True:
-        user_input = input("User: ")
-        if user_input.lower() in ["quit", "exit", "q"]:
-            print("Goodbye!")
-            break
-        stream_graph_updates(user_input)
