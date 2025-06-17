@@ -2,9 +2,12 @@ import os
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
-from apscheduler.executors.pool import ThreadPoolExecutor
-from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
-from apscheduler.schedulers.background import BackgroundScheduler, BaseScheduler
+from apscheduler.executors.pool import ThreadPoolExecutor  # type: ignore
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore  # type: ignore
+from apscheduler.schedulers.background import (  # type: ignore
+    BackgroundScheduler,
+    BaseScheduler,
+)
 from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.graph.graph import CompiledGraph
 from openai import OpenAI

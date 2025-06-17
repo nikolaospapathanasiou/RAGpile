@@ -150,12 +150,14 @@ async def telegram_callback(
     )
     logger.info("telegram prehash value %s", prehash_value)
     secret_key = hashlib.sha256(telegram_application_token.encode("utf-8")).digest()
-    hash = hmac.new(
+    expected_hash = hmac.new(
         secret_key, prehash_value.encode("utf-8"), hashlib.sha256
     ).hexdigest()
-    if hash != data["hash"]:
+    if expected_hash != data["hash"]:
         logger.warning(
-            "telegram hash mismatch expected: %s, received: %s", hash, data["hash"]
+            "telegram hash mismatch expected: %s, received: %s",
+            expected_hash,
+            data["hash"],
         )
         raise HTTPException(status_code=403, detail="the hash failed validation")
     current_user.integrations["telegram"] = current_user.integrations.get(

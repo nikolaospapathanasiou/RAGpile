@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from langchain.chat_models import init_chat_model
+# from langchain.chat_models import init_chat_model
 from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.graph import START, StateGraph
 from langgraph.graph.graph import CompiledGraph
@@ -19,7 +19,8 @@ class State(TypedDict):
 
 
 def chatbot(state: State) -> State:
-    return {"messages": [llm.invoke(state["messages"])]}
+    # return {"messages": [llm.invoke(state["messages"])]}
+    return state
 
 
 def create_graph(checkpointer: PostgresSaver) -> CompiledGraph:

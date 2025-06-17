@@ -1,7 +1,7 @@
 from typing import AsyncContextManager, Callable, Coroutine, cast
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql import column, select
+from sqlalchemy.sql import select
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
@@ -21,7 +21,7 @@ def start_factory(
     session_factory: Callable[[], AsyncContextManager[AsyncSession]],
 ) -> Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[None, None, None]]:
 
-    async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def start(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         assert update.message
         assert update.message.from_user
         user_id = update.message.from_user.id

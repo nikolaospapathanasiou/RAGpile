@@ -1,12 +1,10 @@
-import asyncio
 import logging
 import multiprocessing
 import os
-import threading
 from contextlib import asynccontextmanager
 from typing import Annotated, Optional, cast
 
-import debugpy
+import debugpy  # type: ignore
 from fastapi import Depends, FastAPI, HTTPException
 from psycopg_pool import ConnectionPool
 from pydantic import BaseModel
