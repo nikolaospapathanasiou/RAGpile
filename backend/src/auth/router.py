@@ -1,7 +1,10 @@
+import hashlib
+import hmac
+import logging
 import os
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Annotated
+from typing import Annotated, Union
 
 import requests
 from fastapi import APIRouter, Depends, HTTPException
@@ -9,10 +12,11 @@ from pydantic import BaseModel
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from dependencies import get_current_user, get_session
+from dependencies import get_current_user, get_session, get_telegram_application_token
 from models import User
 
 auth_router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 class ResponseIntegration(BaseModel):
@@ -120,4 +124,49 @@ async def callback(
     session.expunge(current_user)
     await session.commit()
 
+    return ResponseUser.from_user(current_user)
+
+
+@auth_router.post("/telegram_callback")
+async def telegram_callback(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    data: dict[str, Union[str, int]],
+    telegram_application_token: Annotated[str, Depends(get_telegram_application_token)],
+):
+    if "hash" not in data:
+        raise HTTPException(
+            status_code=400,
+            detail="hash key not found in the telegram callback payload",
+        )
+
+    if "id" not in data:
+        raise HTTPException(
+            status_code=400, detail="id key not found in the telegram callback payload"
+        )
+
+    prehash_value = "\n".join(
+        f"{key}={data[key]}" for key in sorted(data.keys()) if key != "hash"
+    )
+    logger.info("telegram prehash value %s", prehash_value)
+    secret_key = hashlib.sha256(telegram_application_token.encode("utf-8")).digest()
+    hash = hmac.new(
+        secret_key, prehash_value.encode("utf-8"), hashlib.sha256
+    ).hexdigest()
+    if hash != data["hash"]:
+        logger.warning(
+            "telegram hash mismatch expected: %s, received: %s", hash, data["hash"]
+        )
+        raise HTTPException(status_code=403, detail="the hash failed validation")
+    current_user.integrations["telegram"] = current_user.integrations.get(
+        "telegram", {}
+    )
+    current_user.integrations["telegram"]["user_id"] = str(data["id"])
+    await session.execute(
+        update(User)
+        .where(User.id == current_user.id)
+        .values(integrations=current_user.integrations)
+    )
+    session.expunge(current_user)
+    await session.commit()
     return ResponseUser.from_user(current_user)

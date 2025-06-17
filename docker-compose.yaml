@@ -20,7 +20,7 @@ services:
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - BASE_URL=http://127.0.0.1
       - JWT_SECRET=secret
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_APPLICATION_TOKEN=${TELEGRAM_APPLICATION_TOKEN}
       - ENABLE_DEBUGPY=1
     labels:
       - "traefik.enable=true"

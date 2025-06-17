@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
 from apscheduler.executors.pool import ThreadPoolExecutor
@@ -17,9 +18,11 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from telegram.ext import Application
 
 from agents.email import create_graph as create_email_graph
 from auth.token import TokenManager, get_current_user_factory
+from telegram_bot.application import new_telegram_application
 
 
 ######### DATABASE #########
@@ -39,6 +42,13 @@ def create_engine() -> AsyncEngine:
 
 ENGINE = create_engine()
 SESSIONFACTORY = async_sessionmaker(bind=ENGINE)
+
+
+@asynccontextmanager
+async def get_session_factory() -> AsyncIterator[AsyncSession]:
+    async with SESSIONFACTORY() as session:
+        async with session.begin():
+            yield session
 
 
 async def get_session() -> AsyncIterator[AsyncSession]:
@@ -116,3 +126,21 @@ GRAPHS = new_graphs()
 
 def get_graphs() -> dict[str, CompiledGraph]:
     return GRAPHS
+
+
+######### Telegram ########
+
+TELEGRAM_APPLICATION_TOKEN = os.environ["TELEGRAM_APPLICATION_TOKEN"]
+
+
+def get_telegram_application_token() -> str:
+    return TELEGRAM_APPLICATION_TOKEN
+
+
+TELEGRAM_APPLICATION = new_telegram_application(
+    TELEGRAM_APPLICATION_TOKEN, get_session_factory
+)
+
+
+def get_telegram_application() -> Application:
+    return TELEGRAM_APPLICATION

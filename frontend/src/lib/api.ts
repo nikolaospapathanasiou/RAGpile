@@ -1,4 +1,4 @@
-import { User } from '@/models'
+import { TelegramUser, User } from '@/models'
 
 function validateResponse(res: Response): Response {
   if (!res.ok) {
@@ -36,5 +36,16 @@ export async function googleCallback(
     'api/google_token_callback/' + reason + '?code=' + code,
     { method: 'POST' }
   )
+  return await validateResponse(res).json()
+}
+
+export async function telegramCallback(
+  telegramUser: TelegramUser
+): Promise<User> {
+  const res = await fetch('api/telegram_callback', {
+    method: 'POST',
+    body: JSON.stringify(telegramUser),
+    headers: { 'Content-type': 'application/json' },
+  })
   return await validateResponse(res).json()
 }

@@ -1,5 +1,8 @@
+import asyncio
 import logging
+import multiprocessing
 import os
+import threading
 from contextlib import asynccontextmanager
 from typing import Annotated, Optional, cast
 
@@ -10,7 +13,13 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.router import auth_router
-from dependencies import CHECKPOINTER, ENGINE, get_scheduler, get_session
+from dependencies import (
+    CHECKPOINTER,
+    ENGINE,
+    get_scheduler,
+    get_session,
+    get_telegram_application,
+)
 from log import init_logger
 from models import User
 from openai_wrapper import openai_router
@@ -19,24 +28,33 @@ init_logger()
 logger = logging.getLogger(__name__)
 
 
+def run_application():
+    logger.info("Starting up telegram application")
+    application = get_telegram_application()
+    application.run_polling(poll_interval=10.0, timeout=30)
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    process = multiprocessing.Process(target=run_application)
+    process.start()
     if os.environ.get("ENABLE_DEBUGPY") == "1":
         debug_port = 5678
         print(f"Debugger listening on port {debug_port} ...")
         debugpy.listen(("0.0.0.0", debug_port))
     logger.info("Staring up checkpointer")
     cast(ConnectionPool, CHECKPOINTER.conn).open()
-    logger.info("Starting up postgres engine")
-    connection = ENGINE.connect()
     logger.info("Starting up scheduler")
     scheduler = get_scheduler()
     scheduler.start()
     yield
+    logger.info("Shutting down telegram application")
+    process.terminate()
+    process.join()
+    process.close()
     logger.info("Shutting down scheduler")
     scheduler.shutdown()
     logger.info("Shutting down postgres engine")
-    await connection.close()
     await ENGINE.dispose()
     logger.info("Shutting down checkpointer")
     CHECKPOINTER.conn.close()

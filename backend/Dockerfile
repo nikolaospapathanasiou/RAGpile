@@ -12,4 +12,5 @@ RUN pipenv install --dev --system
 COPY . .
 
 ENV PYTHONPATH="/app/src:${PYTHONPATH}"
-ENTRYPOINT [ "/app/docker-entrypoint.sh" ]
+CMD [ "/app/docker-entrypoint.sh" ]
+

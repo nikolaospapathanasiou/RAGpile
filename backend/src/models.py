@@ -31,4 +31,6 @@ class User(Base):
                 refresh_token_expiry is not None
                 and int(refresh_token_expiry) > utc_timestamp
             )
+        if name == "telegram":
+            return "user_id" in integration
         raise ValueError(f"Unknown integration name {name}")
