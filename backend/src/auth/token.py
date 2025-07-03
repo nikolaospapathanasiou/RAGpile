@@ -11,7 +11,7 @@ from models import User
 
 
 class Token:
-    def __init__(self, id: str, exp: int | None = None):
+    def __init__(self, user_id: str, exp: int | None = None):
         if not exp:
             self.exp = timegm(
                 (
@@ -21,7 +21,7 @@ class Token:
             )
         else:
             self.exp = exp
-        self.id = id
+        self.user_id = user_id
 
     def expires_soon(self) -> bool:
         return self.exp < timegm(
@@ -32,11 +32,7 @@ class Token:
         )
 
     def payload(self) -> dict:
-        return {"user_id": self.id, "exp": self.exp}
-
-    @classmethod
-    def from_payload(cls, payload: dict) -> "Token":
-        return cls(payload["id"], payload["exp"])
+        return {"user_id": self.user_id, "exp": self.exp}
 
 
 class TokenManager:
@@ -70,9 +66,9 @@ def get_current_user_factory(
             raise HTTPException(status_code=401, detail="Not authenticated") from exc
 
         if token_decoded.expires_soon():
-            set_current_user(response, token_manager, token_decoded.id)
+            set_current_user(response, token_manager, token_decoded.user_id)
 
-        user = await session.get(User, token_decoded.id)
+        user = await session.get(User, token_decoded.user_id)
         if not user:
             raise HTTPException(status_code=401, detail="Not authenticated")
         return user

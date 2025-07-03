@@ -5,12 +5,19 @@ name = "pypi"
 
 [packages]
 fastapi = {extras = ["standard"], version = "*"}
-sqlalchemy = "*"
+sqlalchemy = {version = "*", extras = ["asyncio"]}
 alembic = "*"
 openai = "*"
 requests = "*"
 pyjwt = "*"
 asyncpg = "*"
+psycopg2-binary = "*"
+apscheduler = "*"
+langgraph = "*"
+langsmith = "*"
+langchain = {extras = ["openai", "google-genai", "anthropic"], version = "*"}
+langgraph-checkpoint-postgres = "*"
+python-telegram-bot = "*"
 
 [dev-packages]
 pylint = "*"
@@ -18,6 +25,10 @@ debugpy = "*"
 black = "==25.1.0"
 isort = "==6.0.0"
 pylsp-mypy = "*"
+ipython = "*"
+pylsp-rope = "*"
+rope = "*"
+python-lsp-server = {extras = ["all"], version = "*"}
 
 [requires]
 python_version = "3.12"
