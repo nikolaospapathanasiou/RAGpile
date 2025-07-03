@@ -8,6 +8,7 @@ from apscheduler.schedulers.background import (  # type: ignore
     BackgroundScheduler,
     BaseScheduler,
 )
+from langchain.chat_models import init_chat_model
 from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.graph.graph import CompiledGraph
 from openai import OpenAI
@@ -110,7 +111,9 @@ def new_checkpointer() -> PostgresSaver:
         database=os.environ["POSTGRES_DB"],
     )
     pool = ConnectionPool(
-        url.render_as_string(hide_password=False), connection_class=Connection[DictRow]
+        url.render_as_string(hide_password=False),
+        connection_class=Connection[DictRow],
+        kwargs={"autocommit": True},
     )
     return PostgresSaver(pool)
 
@@ -121,7 +124,7 @@ CHECKPOINTER = new_checkpointer()
 
 
 def new_graphs() -> dict[str, CompiledGraph]:
-    return {"email": create_email_graph(CHECKPOINTER)}
+    return {"email": create_email_graph(CHECKPOINTER, init_chat_model("gpt-3.5-turbo"))}
 
 
 GRAPHS = new_graphs()
@@ -141,7 +144,7 @@ def get_telegram_application_token() -> str:
 
 
 TELEGRAM_APPLICATION = new_telegram_application(
-    TELEGRAM_APPLICATION_TOKEN, get_session_factory
+    TELEGRAM_APPLICATION_TOKEN, get_session_factory, GRAPHS["email"]
 )
 
 

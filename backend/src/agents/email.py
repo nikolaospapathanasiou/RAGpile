@@ -1,6 +1,6 @@
-from typing import Annotated
+from typing import Annotated, Callable
 
-# from langchain.chat_models import init_chat_model
+from langchain_core.language_models.chat_models import BaseChatModel
 from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.graph import START, StateGraph
 from langgraph.graph.graph import CompiledGraph
@@ -9,22 +9,19 @@ from typing_extensions import TypedDict
 
 
 class State(TypedDict):
-    # Messages have the type "list". The `add_messages` function
-    # in the annotation defines how this state key should be updated
-    # (in this case, it appends messages to the list, rather than overwriting them)
     messages: Annotated[list, add_messages]
 
 
-# llm = init_chat_model("google_genai:gemini-2.0-flash")
+def completion(llm: BaseChatModel) -> Callable[[State], State]:
+    def _completion(state: State) -> State:
+        state["messages"].append(llm.invoke(state["messages"]))
+        return state
+
+    return _completion
 
 
-def chatbot(state: State) -> State:
-    # return {"messages": [llm.invoke(state["messages"])]}
-    return state
-
-
-def create_graph(checkpointer: PostgresSaver) -> CompiledGraph:
+def create_graph(checkpointer: PostgresSaver, llm: BaseChatModel) -> CompiledGraph:
     graph_builder = StateGraph(State)
-    graph_builder.add_node("chatbot", chatbot)
-    graph_builder.add_edge(START, "chatbot")
+    graph_builder.add_node("completion", completion(llm))
+    graph_builder.add_edge(START, "completion")
     return graph_builder.compile(checkpointer)

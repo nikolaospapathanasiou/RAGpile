@@ -40,8 +40,9 @@ async def lifespan(_: FastAPI):
         debug_port = 5678
         print(f"Debugger listening on port {debug_port} ...")
         debugpy.listen(("0.0.0.0", debug_port))
-    logger.info("Staring up checkpointer")
+    logger.info("Starting up checkpointer")
     cast(ConnectionPool, CHECKPOINTER.conn).open()
+    CHECKPOINTER.setup()
     logger.info("Starting up scheduler")
     scheduler = get_scheduler()
     scheduler.start()

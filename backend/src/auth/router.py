@@ -116,11 +116,7 @@ async def callback(
     current_user.integrations[reason.value]["refresh_token_expiry"] = str(
         utc_timestamp + response_json["refresh_token_expires_in"]
     )
-    await session.execute(
-        update(User)
-        .where(User.id == current_user.id)
-        .values(integrations=current_user.integrations)
-    )
+    await session.execute(User.update_integrations(current_user))
     session.expunge(current_user)
     await session.commit()
 

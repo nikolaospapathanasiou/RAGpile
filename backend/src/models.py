@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from sqlalchemy import String
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.sql import Executable, select, update
 
 
 class Base(DeclarativeBase):
@@ -34,3 +35,15 @@ class User(Base):
         if name == "telegram":
             return "user_id" in integration
         raise ValueError(f"Unknown integration name {name}")
+
+    @classmethod
+    def select_user_from_telegram_id(cls, telegram_id: int) -> Executable:
+        return select(cls).where(
+            cls.integrations["telegram"]["user_id"].astext == str(telegram_id)
+        )
+
+    @classmethod
+    def update_integrations(cls, user: "User") -> Executable:
+        return (
+            update(cls).where(cls.id == user.id).values(integrations=user.integrations)
+        )
