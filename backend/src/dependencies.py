@@ -10,7 +10,8 @@ from apscheduler.schedulers.background import (  # type: ignore
 )
 from langchain.chat_models import init_chat_model
 from langgraph.checkpoint.postgres import PostgresSaver
-from langgraph.graph.graph import CompiledGraph
+from langgraph.graph.state import CompiledStateGraph
+from neo4j import GraphDatabase
 from openai import OpenAI
 from psycopg import Connection
 from psycopg.rows import DictRow
@@ -26,6 +27,7 @@ from telegram.ext import Application
 
 from agents.email import create_graph as create_email_graph
 from auth.token import TokenManager, get_current_user_factory
+from neo4j_client import Neo4jClient
 from telegram_bot.application import new_telegram_application
 
 
@@ -123,14 +125,14 @@ CHECKPOINTER = new_checkpointer()
 ######## Graphs ########
 
 
-def new_graphs() -> dict[str, CompiledGraph]:
+def new_graphs() -> dict[str, CompiledStateGraph]:
     return {"email": create_email_graph(CHECKPOINTER, init_chat_model("gpt-3.5-turbo"))}
 
 
 GRAPHS = new_graphs()
 
 
-def get_graphs() -> dict[str, CompiledGraph]:
+def get_graphs() -> dict[str, CompiledStateGraph]:
     return GRAPHS
 
 
@@ -150,3 +152,17 @@ TELEGRAM_APPLICATION = new_telegram_application(
 
 def get_telegram_application() -> Application:
     return TELEGRAM_APPLICATION
+
+
+######## Neo4j ########
+
+NEO4J_CLIENT = Neo4jClient(
+    driver=GraphDatabase.driver(
+        uri=os.environ["NEO4J_URI"],
+        auth=(os.environ["NEO4J_USERNAME"], os.environ["NEO4J_PASSWORD"]),
+    )
+)
+
+
+def get_neo4j_client() -> Neo4jClient:
+    return NEO4J_CLIENT
