@@ -8,6 +8,7 @@ services:
     depends_on:
       - db
       - neo4j
+    stop_grace_period: 4s
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -85,6 +86,7 @@ services:
       - NEO4J_dbms_security_procedures_allowlist=apoc.*
     volumes:
       - neo4j_data:/data
+    stop_grace_period: 4s
   openwebui:
     image: ghcr.io/open-webui/open-webui:main
     environment:

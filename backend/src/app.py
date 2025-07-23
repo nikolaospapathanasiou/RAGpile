@@ -1,6 +1,7 @@
+import asyncio
 import logging
-import multiprocessing
 import os
+import threading
 from contextlib import asynccontextmanager
 from typing import Annotated, Optional, cast
 
@@ -9,6 +10,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from psycopg_pool import ConnectionPool
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
+from telegram.ext import Application
 
 from auth.router import auth_router
 from dependencies import (
@@ -26,16 +28,32 @@ init_logger()
 logger = logging.getLogger(__name__)
 
 
-def run_application():
-    logger.info("Starting up telegram application")
-    application = get_telegram_application()
-    application.run_polling(poll_interval=10.0, timeout=30)
+def run_telegram_application(stop_event: threading.Event):
+    async def _run() -> None:
+        application = get_telegram_application()
+        await application.initialize()
+        assert application.updater is not None
+        await application.updater.start_polling(poll_interval=10.0, timeout=30)
+        await application.start()
+
+        while not stop_event.is_set():
+            await asyncio.sleep(1)
+
+        await application.updater.stop()
+        await application.stop()
+        await application.shutdown()
+
+    loop = asyncio.new_event_loop()
+    loop.run_until_complete(_run())
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    process = multiprocessing.Process(target=run_application)
-    process.start()
+    stop_event = threading.Event()
+    telegram_thread = threading.Thread(
+        target=run_telegram_application, args=(stop_event,)
+    )
+    telegram_thread.start()
     if os.environ.get("ENABLE_DEBUGPY") == "1":
         debug_port = 5678
         print(f"Debugger listening on port {debug_port} ...")
@@ -48,9 +66,8 @@ async def lifespan(_: FastAPI):
     scheduler.start()
     yield
     logger.info("Shutting down telegram application")
-    process.terminate()
-    process.join()
-    process.close()
+    stop_event.set()
+    telegram_thread.join()
     logger.info("Shutting down scheduler")
     scheduler.shutdown()
     logger.info("Shutting down postgres engine")

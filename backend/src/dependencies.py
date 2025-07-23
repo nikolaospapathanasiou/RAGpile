@@ -9,6 +9,7 @@ from apscheduler.schedulers.background import (  # type: ignore
     BaseScheduler,
 )
 from langchain.chat_models import init_chat_model
+from langchain.globals import set_debug
 from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.graph.state import CompiledStateGraph
 from neo4j import GraphDatabase
@@ -124,9 +125,19 @@ CHECKPOINTER = new_checkpointer()
 
 ######## Graphs ########
 
+set_debug(True)
+
 
 def new_graphs() -> dict[str, CompiledStateGraph]:
-    return {"email": create_email_graph(CHECKPOINTER, init_chat_model("gpt-3.5-turbo"))}
+    return {
+        "email": create_email_graph(
+            CHECKPOINTER,
+            init_chat_model("gpt-3.5-turbo"),
+            get_session_factory,
+            os.environ["GOOGLE_CLIENT_ID"],
+            os.environ["GOOGLE_CLIENT_SECRET"],
+        )
+    }
 
 
 GRAPHS = new_graphs()

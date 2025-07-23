@@ -47,7 +47,8 @@ class TokenManager:
         )
 
     def decode_token(self, token: str) -> Token:
-        return Token(**jwt.decode(token, self.secret, algorithms=["HS256"]))
+        decoded = jwt.decode(token, self.secret, algorithms=["HS256"])
+        return Token(user_id=decoded["id"], exp=decoded.get("exp"))
 
 
 def get_current_user_factory(
