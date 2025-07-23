@@ -72,7 +72,7 @@ class GmailReadUnreadTool(BaseTool):
     verbose: bool = True
 
     def _run(self, config: RunnableConfig) -> List[EmailMessage]:
-        return asyncio.run(self._arun(config))
+        raise NotImplementedError
 
     async def _arun(self, config: RunnableConfig) -> List[EmailMessage]:
         user_id = config["configurable"]["user_id"]

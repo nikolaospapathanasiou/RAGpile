@@ -4,7 +4,7 @@ from langchain_core.language_models.base import LanguageModelInput
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import BaseMessage
 from langchain_core.runnables import Runnable, RunnableLambda
-from langgraph.checkpoint.postgres import PostgresSaver
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 from langgraph.graph.state import CompiledStateGraph
@@ -38,7 +38,7 @@ def should_continue(state: State) -> str:
 
 
 def create_graph(
-    checkpointer: PostgresSaver,
+    checkpointer: AsyncPostgresSaver,
     llm: BaseChatModel,
     session_factory: Callable[[], AsyncContextManager[AsyncSession]],
     client_id: str,

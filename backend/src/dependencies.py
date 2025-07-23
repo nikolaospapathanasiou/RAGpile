@@ -10,13 +10,9 @@ from apscheduler.schedulers.background import (  # type: ignore
 )
 from langchain.chat_models import init_chat_model
 from langchain.globals import set_debug
-from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.graph.state import CompiledStateGraph
 from neo4j import GraphDatabase
 from openai import OpenAI
-from psycopg import Connection
-from psycopg.rows import DictRow
-from psycopg_pool import ConnectionPool
 from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -27,6 +23,7 @@ from sqlalchemy.ext.asyncio import (
 from telegram.ext import Application
 
 from agents.email import create_graph as create_email_graph
+from agents.postgres_saver import LazyAsyncPostgresSaver
 from auth.token import TokenManager, get_current_user_factory
 from neo4j_client import Neo4jClient
 from telegram_bot.application import new_telegram_application
@@ -104,7 +101,7 @@ def get_scheduler() -> BaseScheduler:
 
 
 ######## Langgraph Checkpointer ########
-def new_checkpointer() -> PostgresSaver:
+def new_checkpointer() -> LazyAsyncPostgresSaver:
     url = URL.create(
         drivername="postgresql",
         username=os.environ["POSTGRES_USER"],
@@ -113,12 +110,7 @@ def new_checkpointer() -> PostgresSaver:
         port=5432,
         database=os.environ["POSTGRES_DB"],
     )
-    pool = ConnectionPool(
-        url.render_as_string(hide_password=False),
-        connection_class=Connection[DictRow],
-        kwargs={"autocommit": True},
-    )
-    return PostgresSaver(pool)
+    return LazyAsyncPostgresSaver(url.render_as_string(False))
 
 
 CHECKPOINTER = new_checkpointer()
