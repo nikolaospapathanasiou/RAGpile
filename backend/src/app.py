@@ -49,6 +49,7 @@ def run_telegram_application(stop_event: threading.Event):
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    logger.info("Starting up checkpointer")
     await CHECKPOINTER.connect()
     await CHECKPOINTER.setup()
     stop_event = threading.Event()
@@ -60,7 +61,6 @@ async def lifespan(_: FastAPI):
         debug_port = 5678
         print(f"Debugger listening on port {debug_port} ...")
         debugpy.listen(("0.0.0.0", debug_port))
-    logger.info("Starting up checkpointer")
     logger.info("Starting up scheduler")
     scheduler = get_scheduler()
     scheduler.start()

@@ -22,8 +22,8 @@ from sqlalchemy.ext.asyncio import (
 )
 from telegram.ext import Application
 
-from agents.email import create_graph as create_email_graph
-from agents.postgres_saver import LazyAsyncPostgresSaver
+from agent.graph import create_graph
+from agent.postgres_saver import LazyAsyncPostgresSaver
 from auth.token import TokenManager, get_current_user_factory
 from neo4j_client import Neo4jClient
 from telegram_bot.application import new_telegram_application
@@ -120,23 +120,16 @@ CHECKPOINTER = new_checkpointer()
 set_debug(True)
 
 
-def new_graphs() -> dict[str, CompiledStateGraph]:
-    return {
-        "email": create_email_graph(
-            CHECKPOINTER,
-            init_chat_model("gpt-3.5-turbo"),
-            get_session_factory,
-            os.environ["GOOGLE_CLIENT_ID"],
-            os.environ["GOOGLE_CLIENT_SECRET"],
-        )
-    }
-
-
-GRAPHS = new_graphs()
-
-
-def get_graphs() -> dict[str, CompiledStateGraph]:
-    return GRAPHS
+def new_graph() -> CompiledStateGraph:
+    return create_graph(
+        checkpointer=CHECKPOINTER,
+        llm=init_chat_model("gpt-3.5-turbo"),
+        session_factory=get_session_factory,
+        client_id=os.environ["GOOGLE_CLIENT_ID"],
+        client_secret=os.environ["GOOGLE_CLIENT_SECRET"],
+        google_search_api_key=os.environ["GOOGLE_SEARCH_API_KEY"],
+        google_search_engine_id=os.environ["GOOGLE_SEARCH_ENGINE_ID"],
+    )
 
 
 ######### Telegram ########
@@ -149,7 +142,7 @@ def get_telegram_application_token() -> str:
 
 
 TELEGRAM_APPLICATION = new_telegram_application(
-    TELEGRAM_APPLICATION_TOKEN, get_session_factory, GRAPHS["email"]
+    TELEGRAM_APPLICATION_TOKEN, get_session_factory, new_graph()
 )
 
 

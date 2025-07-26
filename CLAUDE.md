@@ -26,7 +26,7 @@ docker-compose down    # Stop all services
 - **Database models**: `backend/src/models.py`
 - **API routes**: `backend/src/auth/router.py`, `backend/src/openai_wrapper.py`
 - **Telegram bot**: `backend/src/telegram_bot/application.py`
-- **Email agent**: `backend/src/agents/email.py`
+- **Agent**: `backend/src/agents/graph.py`
 - **Frontend main app**: `frontend/src/App.tsx`
 - **API client**: `frontend/src/lib/api.ts`
 - **UI components**: `frontend/src/components/ui/`

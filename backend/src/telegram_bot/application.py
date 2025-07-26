@@ -91,12 +91,14 @@ def reply(
                     User.select_user_from_telegram_id(update.message.from_user.id)
                 ),
             )
+            if not user:
+                return
             session.expunge(user)
-        if not user:
-            return
-        thread_id = user.integrations["telegram"].get("thread_id")
-        if not thread_id:
-            thread_id = uuid4().hex
+            thread_id = user.integrations["telegram"].get("thread_id")
+            if not thread_id:
+                thread_id = uuid4().hex
+                user.integrations["telegram"]["thread_id"] = thread_id
+                await session.execute(User.update_integrations(user))
         async for event in graph.astream(
             {
                 "messages": [{"role": "user", "content": update.message.text}],

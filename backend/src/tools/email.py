@@ -1,17 +1,7 @@
-import asyncio
 import base64
 import logging
 from dataclasses import dataclass
-from typing import (
-    Annotated,
-    Any,
-    AsyncContextManager,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Type,
-)
+from typing import Any, AsyncContextManager, Callable, Dict, List, Optional, Type
 
 from bs4 import BeautifulSoup
 from google.oauth2.credentials import Credentials
