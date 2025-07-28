@@ -16,7 +16,8 @@ services:
       - POSTGRES_TASKS_PASSWORD=postgres
       - POSTGRES_HOST=db
       - POSTGRES_DB=postgres
-      - POSTGRES_TASKS_DB=tasks
+      - POSTGRES_SCHEDULER_DB=scheduler
+      - POSTGRES_CHECKPOINTER_DB=checkpointer
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}

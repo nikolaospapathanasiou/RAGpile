@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler
 
-from models import User
+from models import Thread, User
 
 
 def new_telegram_application(
@@ -97,6 +97,13 @@ def reply(
             thread_id = user.integrations["telegram"].get("thread_id")
             if not thread_id:
                 thread_id = uuid4().hex
+                session.add(
+                    Thread(
+                        thread_id=thread_id,
+                        user_id=user.id,
+                        timestamp=datetime.utcnow(),
+                    )
+                )
                 user.integrations["telegram"]["thread_id"] = thread_id
                 await session.execute(User.update_integrations(user))
         async for event in graph.astream(

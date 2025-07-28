@@ -76,14 +76,13 @@ def get_openai_client() -> OpenAI:
 
 ####### APScheduler #######
 def new_scheduler() -> BaseScheduler:
-
     url = URL.create(
         drivername="postgresql",
         username=os.environ["POSTGRES_USER"],
         password=os.environ["POSTGRES_PASSWORD"],
         host="db",
         port=5432,
-        database=os.environ["POSTGRES_DB"],
+        database=os.environ["POSTGRES_SCHEDULER_DB"],
     )
     jobstores = {"default": SQLAlchemyJobStore(url=url)}
     executors = {"default": ThreadPoolExecutor(5)}
@@ -108,7 +107,7 @@ def new_checkpointer() -> LazyAsyncPostgresSaver:
         password=os.environ["POSTGRES_PASSWORD"],
         host="db",
         port=5432,
-        database=os.environ["POSTGRES_DB"],
+        database=os.environ["POSTGRES_CHECKPOINTER_DB"],
     )
     return LazyAsyncPostgresSaver(url.render_as_string(False))
 
