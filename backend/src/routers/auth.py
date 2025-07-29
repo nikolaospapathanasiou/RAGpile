@@ -6,13 +6,14 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Annotated, Union
 
-import requests
-from fastapi import APIRouter, Depends, HTTPException
+import requests  # type: ignore
+from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from dependencies import get_current_user, get_session, get_telegram_application_token
+from jwt_token import remove_current_user
 from models import User
 
 auth_router = APIRouter()
@@ -50,6 +51,12 @@ class ReasonEnum(str, Enum):
 @auth_router.get("/auth/me", response_model=ResponseUser)
 async def me(current_user: Annotated[User, Depends(get_current_user)]):
     return ResponseUser.from_user(current_user)
+
+
+@auth_router.post("/auth/logout")
+async def logout(response: Response):
+    remove_current_user(response)
+    return {}
 
 
 @auth_router.get("/google_token/{reason}")

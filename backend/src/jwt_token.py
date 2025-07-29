@@ -47,7 +47,8 @@ class TokenManager:
         )
 
     def decode_token(self, token: str) -> Token:
-        return Token(**jwt.decode(token, self.secret, algorithms=["HS256"]))
+        decoded = jwt.decode(token, self.secret, algorithms=["HS256"])
+        return Token(user_id=decoded["id"], exp=decoded.get("exp"))
 
 
 def get_current_user_factory(
@@ -80,8 +81,8 @@ def set_current_user(
     response: Response, token_manager: TokenManager, user_id: str
 ) -> None:
     token = token_manager.sign_token(Token(user_id))
-    response.set_cookie("ragpile_token", token, httponly=True)
+    response.set_cookie("token", token, httponly=True)
 
 
 def remove_current_user(response: Response) -> None:
-    response.delete_cookie("ragpile_token")
+    response.delete_cookie("token")

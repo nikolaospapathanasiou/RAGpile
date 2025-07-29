@@ -7,6 +7,8 @@ services:
       - ./backend:/app
     depends_on:
       - db
+      - neo4j
+    stop_grace_period: 4s
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -14,14 +16,20 @@ services:
       - POSTGRES_TASKS_PASSWORD=postgres
       - POSTGRES_HOST=db
       - POSTGRES_DB=postgres
-      - POSTGRES_TASKS_DB=tasks
+      - POSTGRES_SCHEDULER_DB=scheduler
+      - POSTGRES_CHECKPOINTER_DB=checkpointer
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_SEARCH_API_KEY=${GOOGLE_SEARCH_API_KEY}
+      - GOOGLE_SEARCH_ENGINE_ID=${GOOGLE_SEARCH_ENGINE_ID}
       - BASE_URL=http://127.0.0.1
       - JWT_SECRET=secret
       - TELEGRAM_APPLICATION_TOKEN=${TELEGRAM_APPLICATION_TOKEN}
       - ENABLE_DEBUGPY=1
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USERNAME=neo4j
+      - NEO4J_PASSWORD=ragpile123
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.app.rule=PathPrefix(`/ragpile/api`)"
@@ -69,6 +77,19 @@ services:
       - "8080:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+  neo4j:
+    image: neo4j:5.25-community
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      - NEO4J_AUTH=neo4j/ragpile123
+      - NEO4J_PLUGINS=["apoc"]
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*
+      - NEO4J_dbms_security_procedures_allowlist=apoc.*
+    volumes:
+      - neo4j_data:/data
+    stop_grace_period: 4s
   openwebui:
     image: ghcr.io/open-webui/open-webui:main
     environment:
@@ -95,3 +116,4 @@ volumes:
   open-webui: {}
   pgdata: {}
   pgadmindata: {}
+  neo4j_data: {}

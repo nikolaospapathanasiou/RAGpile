@@ -1,6 +1,6 @@
 import os
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
+from typing import AsyncContextManager, AsyncIterator, Callable
 
 from apscheduler.executors.pool import ThreadPoolExecutor  # type: ignore
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore  # type: ignore
@@ -9,12 +9,10 @@ from apscheduler.schedulers.background import (  # type: ignore
     BaseScheduler,
 )
 from langchain.chat_models import init_chat_model
-from langgraph.checkpoint.postgres import PostgresSaver
-from langgraph.graph.graph import CompiledGraph
+from langchain.globals import set_debug
+from langgraph.graph.state import CompiledStateGraph
+from neo4j import GraphDatabase
 from openai import OpenAI
-from psycopg import Connection
-from psycopg.rows import DictRow
-from psycopg_pool import ConnectionPool
 from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -24,8 +22,10 @@ from sqlalchemy.ext.asyncio import (
 )
 from telegram.ext import Application
 
-from agents.email import create_graph as create_email_graph
-from auth.token import TokenManager, get_current_user_factory
+from agent.graph import create_graph
+from agent.postgres_saver import LazyAsyncPostgresSaver
+from jwt_token import TokenManager, get_current_user_factory
+from neo4j_client import Neo4jClient
 from telegram_bot.application import new_telegram_application
 
 
@@ -45,20 +45,23 @@ def create_engine() -> AsyncEngine:
 
 
 ENGINE = create_engine()
-SESSIONFACTORY = async_sessionmaker(bind=ENGINE)
 
 
-@asynccontextmanager
-async def get_session_factory() -> AsyncIterator[AsyncSession]:
-    async with SESSIONFACTORY() as session:
-        async with session.begin():
-            yield session
+def create_session_factory(
+    engine: AsyncEngine,
+) -> Callable[[], AsyncIterator[AsyncSession]]:
+    session_maker = async_sessionmaker(bind=engine)
+
+    async def _session_factory() -> AsyncIterator[AsyncSession]:
+        async with session_maker() as session:
+            async with session.begin():
+                yield session
+
+    return _session_factory
 
 
-async def get_session() -> AsyncIterator[AsyncSession]:
-    async with SESSIONFACTORY() as session:
-        async with session.begin():
-            yield session
+get_session = create_session_factory(ENGINE)
+get_session_factory = asynccontextmanager(get_session)
 
 
 ######## JWT ########
@@ -76,14 +79,13 @@ def get_openai_client() -> OpenAI:
 
 ####### APScheduler #######
 def new_scheduler() -> BaseScheduler:
-
     url = URL.create(
         drivername="postgresql",
         username=os.environ["POSTGRES_USER"],
         password=os.environ["POSTGRES_PASSWORD"],
         host="db",
         port=5432,
-        database=os.environ["POSTGRES_DB"],
+        database=os.environ["POSTGRES_SCHEDULER_DB"],
     )
     jobstores = {"default": SQLAlchemyJobStore(url=url)}
     executors = {"default": ThreadPoolExecutor(5)}
@@ -101,37 +103,43 @@ def get_scheduler() -> BaseScheduler:
 
 
 ######## Langgraph Checkpointer ########
-def new_checkpointer() -> PostgresSaver:
+def new_checkpointer() -> LazyAsyncPostgresSaver:
     url = URL.create(
         drivername="postgresql",
         username=os.environ["POSTGRES_USER"],
         password=os.environ["POSTGRES_PASSWORD"],
         host="db",
         port=5432,
-        database=os.environ["POSTGRES_DB"],
+        database=os.environ["POSTGRES_CHECKPOINTER_DB"],
     )
-    pool = ConnectionPool(
-        url.render_as_string(hide_password=False),
-        connection_class=Connection[DictRow],
-        kwargs={"autocommit": True},
-    )
-    return PostgresSaver(pool)
+    return LazyAsyncPostgresSaver(url.render_as_string(False))
 
 
 CHECKPOINTER = new_checkpointer()
 
+
+def get_checkpointer() -> LazyAsyncPostgresSaver:
+    return CHECKPOINTER
+
+
 ######## Graphs ########
 
-
-def new_graphs() -> dict[str, CompiledGraph]:
-    return {"email": create_email_graph(CHECKPOINTER, init_chat_model("gpt-3.5-turbo"))}
+set_debug(True)
 
 
-GRAPHS = new_graphs()
-
-
-def get_graphs() -> dict[str, CompiledGraph]:
-    return GRAPHS
+def new_graph(
+    checkpointer: LazyAsyncPostgresSaver,
+    session_factory: Callable[[], AsyncContextManager[AsyncSession]],
+) -> CompiledStateGraph:
+    return create_graph(
+        checkpointer=checkpointer,
+        llm=init_chat_model("gpt-3.5-turbo"),
+        session_factory=session_factory,
+        client_id=os.environ["GOOGLE_CLIENT_ID"],
+        client_secret=os.environ["GOOGLE_CLIENT_SECRET"],
+        google_search_api_key=os.environ["GOOGLE_SEARCH_API_KEY"],
+        google_search_engine_id=os.environ["GOOGLE_SEARCH_ENGINE_ID"],
+    )
 
 
 ######### Telegram ########
@@ -143,10 +151,15 @@ def get_telegram_application_token() -> str:
     return TELEGRAM_APPLICATION_TOKEN
 
 
-TELEGRAM_APPLICATION = new_telegram_application(
-    TELEGRAM_APPLICATION_TOKEN, get_session_factory, GRAPHS["email"]
+######## Neo4j ########
+
+NEO4J_CLIENT = Neo4jClient(
+    driver=GraphDatabase.driver(
+        uri=os.environ["NEO4J_URI"],
+        auth=(os.environ["NEO4J_USERNAME"], os.environ["NEO4J_PASSWORD"]),
+    )
 )
 
 
-def get_telegram_application() -> Application:
-    return TELEGRAM_APPLICATION
+def get_neo4j_client() -> Neo4jClient:
+    return NEO4J_CLIENT

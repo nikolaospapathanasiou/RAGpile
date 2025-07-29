@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import String
+from sqlalchemy import PrimaryKeyConstraint, String
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.sql import Executable, select, update
@@ -47,3 +47,13 @@ class User(Base):
         return (
             update(cls).where(cls.id == user.id).values(integrations=user.integrations)
         )
+
+
+class Thread(Base):
+    __tablename__ = "threads"
+
+    thread_id: Mapped[str] = mapped_column(String)
+    user_id: Mapped[str] = mapped_column(String, nullable=False)
+    timestamp: Mapped[datetime] = mapped_column(postgresql.TIMESTAMP, nullable=False)
+
+    __table_args__ = (PrimaryKeyConstraint("user_id", "thread_id"),)

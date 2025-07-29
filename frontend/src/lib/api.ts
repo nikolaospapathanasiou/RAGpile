@@ -1,4 +1,4 @@
-import { TelegramUser, User } from '@/models'
+import { TelegramUser, Thread, ThreadItem, User } from '@/models'
 
 function validateResponse(res: Response): Response {
   if (!res.ok) {
@@ -47,5 +47,15 @@ export async function telegramCallback(
     body: JSON.stringify(telegramUser),
     headers: { 'Content-type': 'application/json' },
   })
+  return await validateResponse(res).json()
+}
+
+export async function getThreads(): Promise<ThreadItem[]> {
+  const res = await fetch('api/threads', { method: 'GET' })
+  return await validateResponse(res).json()
+}
+
+export async function getThread(id: string): Promise<Thread> {
+  const res = await fetch('api/threads/' + id, { method: 'GET' })
   return await validateResponse(res).json()
 }

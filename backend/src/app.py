@@ -1,67 +1,98 @@
+import asyncio
 import logging
-import multiprocessing
 import os
+import threading
 from contextlib import asynccontextmanager
-from typing import Annotated, Optional, cast
+from typing import Annotated, Optional
 
 import debugpy  # type: ignore
 from fastapi import Depends, FastAPI, HTTPException
-from psycopg_pool import ConnectionPool
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth.router import auth_router
 from dependencies import (
     CHECKPOINTER,
     ENGINE,
+    TELEGRAM_APPLICATION_TOKEN,
+    create_engine,
+    create_session_factory,
     get_scheduler,
     get_session,
-    get_telegram_application,
+    new_checkpointer,
+    new_graph,
 )
 from log import init_logger
 from models import User
-from openai_wrapper import openai_router
+from routers.auth import auth_router
+from routers.openai_wrapper import openai_router
+from routers.threads import threads_router
+from telegram_bot.application import new_telegram_application
 
 init_logger()
 logger = logging.getLogger(__name__)
 
 
-def run_application():
-    logger.info("Starting up telegram application")
-    application = get_telegram_application()
-    application.run_polling(poll_interval=10.0, timeout=30)
+def run_telegram_application(stop_event: threading.Event):
+    async def _run() -> None:
+        session_factory = asynccontextmanager(create_session_factory(create_engine()))
+        checkpointer = new_checkpointer()
+        await checkpointer.connect()
+        application = new_telegram_application(
+            TELEGRAM_APPLICATION_TOKEN,
+            session_factory,
+            new_graph(checkpointer, session_factory),
+        )
+
+        await application.initialize()
+        assert application.updater is not None
+        await application.updater.start_polling(poll_interval=10.0, timeout=30)
+        await application.start()
+
+        while not stop_event.is_set():
+            await asyncio.sleep(1)
+
+        await application.updater.stop()
+        await application.stop()
+        await application.shutdown()
+        await checkpointer.close()
+
+    loop = asyncio.new_event_loop()
+    loop.run_until_complete(_run())
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    process = multiprocessing.Process(target=run_application)
-    process.start()
+    logger.info("Starting up checkpointer")
+    await CHECKPOINTER.connect()
+    await CHECKPOINTER.setup()
+    stop_event = threading.Event()
+    telegram_thread = threading.Thread(
+        target=run_telegram_application, args=(stop_event,)
+    )
+    telegram_thread.start()
     if os.environ.get("ENABLE_DEBUGPY") == "1":
         debug_port = 5678
         print(f"Debugger listening on port {debug_port} ...")
         debugpy.listen(("0.0.0.0", debug_port))
-    logger.info("Starting up checkpointer")
-    cast(ConnectionPool, CHECKPOINTER.conn).open()
-    CHECKPOINTER.setup()
     logger.info("Starting up scheduler")
     scheduler = get_scheduler()
     scheduler.start()
     yield
     logger.info("Shutting down telegram application")
-    process.terminate()
-    process.join()
-    process.close()
+    stop_event.set()
+    telegram_thread.join()
     logger.info("Shutting down scheduler")
     scheduler.shutdown()
     logger.info("Shutting down postgres engine")
     await ENGINE.dispose()
     logger.info("Shutting down checkpointer")
-    CHECKPOINTER.conn.close()
+    await CHECKPOINTER.close()
 
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(auth_router, prefix="/ragpile/api")
 app.include_router(openai_router, prefix="/ragpile/api")
+app.include_router(threads_router, prefix="/ragpile/api")
 
 
 class Webhook(BaseModel):
