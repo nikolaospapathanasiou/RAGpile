@@ -38,6 +38,7 @@ function AppRoutes() {
     <Router>
       <Routes>
         <Route path="/ragpile/" element={<Home />} />
+        <Route path="/ragpile/threads/:threadId" element={<Threads />} />
         <Route path="/ragpile/threads" element={<Threads />} />
       </Routes>
     </Router>

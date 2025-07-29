@@ -29,15 +29,17 @@ async def get_threads(
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
     result = await session.execute(
-        select(Thread).where(Thread.user_id == current_user.id)
+        select(Thread)
+        .where(Thread.user_id == current_user.id)
+        .order_by(Thread.created_at.desc())
     )
     threads = result.scalars().all()
 
     return [
         ResponseThread(
-            id=thread.thread_id,
+            id=thread.id,
             user_id=thread.user_id,
-            created_at=thread.timestamp,
+            created_at=thread.created_at,
         )
         for thread in threads
     ]
@@ -50,7 +52,7 @@ async def get_thread(
     checkpointer: Annotated[AsyncPostgresSaver, Depends(get_checkpointer)],
     thread_id: str,
 ):
-    result = await session.execute(select(Thread).where(Thread.thread_id == thread_id))
+    result = await session.execute(select(Thread).where(Thread.id == thread_id))
     thread = result.scalars().one()
     if thread.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Forbidden")

@@ -1,8 +1,10 @@
+from datetime import datetime
 from typing import Annotated, AsyncContextManager, Callable
 
 from langchain_core.language_models.base import LanguageModelInput
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import BaseMessage
+from langchain_core.messages.system import SystemMessage
 from langchain_core.runnables import Runnable, RunnableLambda
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.graph import END, START, StateGraph
@@ -20,11 +22,21 @@ class State(TypedDict):
     messages: Annotated[list, add_messages]
 
 
+DEFAULT_SYSTEM_PROMPT = """
+You are a helpful peronal assistant.
+The time is {now}.
+The respnses are delivered through Telegram, so keep them short.
+"""
+
+
 def completion(
     llm: Runnable[LanguageModelInput, BaseMessage],
 ) -> Callable[[State], State]:
     def _completion(state: State) -> State:
-        response = llm.invoke(state["messages"])
+        system_prompt = SystemMessage(
+            content=DEFAULT_SYSTEM_PROMPT.format(now=datetime.now().isoformat()),
+        )
+        response = llm.invoke([system_prompt] + state["messages"])
         return {"messages": [response]}
 
     return _completion

@@ -97,9 +97,9 @@ def reply(
                 thread_id = uuid4().hex
                 session.add(
                     Thread(
-                        thread_id=thread_id,
+                        id=thread_id,
                         user_id=user.id,
-                        timestamp=datetime.utcnow(),
+                        created_at=datetime.utcnow(),
                     )
                 )
                 user.integrations["telegram"]["thread_id"] = thread_id

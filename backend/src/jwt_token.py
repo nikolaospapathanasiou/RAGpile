@@ -71,7 +71,11 @@ def get_current_user_factory(
 
         user = await session.get(User, token_decoded.user_id)
         if not user:
-            raise HTTPException(status_code=401, detail="Not authenticated")
+            user = User(
+                id=token_decoded.user_id, email=f"{token_decoded.user_id}@ragpile.com"
+            )
+            session.add(user)
+            await session.commit()
         return user
 
     return _get_current_user

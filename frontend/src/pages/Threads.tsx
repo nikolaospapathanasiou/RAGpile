@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -7,24 +8,24 @@ import {
   getThread as apiGetThread,
   getThreads as apiGetThreads,
 } from '@/lib/api'
-import { Thread, ThreadItem } from '@/models'
+import { Thread, ThreadItem, parseToolContent } from '@/models'
 
 import { Layout } from './Layout'
 
 export default function Threads() {
-  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null)
   const [selectedThread, setSelectedThread] = useState<Thread | null>(null)
-
+  const { threadId: selectedThreadId } = useParams()
+  const navigate = useNavigate()
   const {
     data: threads,
     loading: threadsLoading,
     fn: getThreads,
   } = useApi<ThreadItem[], typeof apiGetThreads>(apiGetThreads, true)
-  const { loading: threadLoading, fn: fetchThread } = useApi(apiGetThread)
+  const { loading: threadLoading, fn: getThread } = useApi(apiGetThread)
 
   useEffect(() => {
     if (selectedThreadId) {
-      fetchThread(selectedThreadId).then(setSelectedThread)
+      getThread(selectedThreadId).then(setSelectedThread)
     } else {
       setSelectedThread(null)
     }
@@ -58,7 +59,7 @@ export default function Threads() {
                   {threads.map((thread: ThreadItem) => (
                     <button
                       key={thread.id}
-                      onClick={() => setSelectedThreadId(thread.id)}
+                      onClick={() => navigate('/ragpile/threads/' + thread.id)}
                       className={`w-full text-left p-4 border-b hover:bg-gray-50 transition-colors ${
                         selectedThreadId === thread.id
                           ? 'bg-blue-50 border-l-4 border-l-blue-500'
@@ -125,7 +126,7 @@ export default function Threads() {
                         </span>
                       </div>
                       <div className="text-sm text-gray-900 whitespace-pre-wrap">
-                        {message.content ?? null}
+                        {message.type !== 'tool' && message.content}
                         {message.tool_calls &&
                           message.tool_calls.map((tool_call) => (
                             <div
@@ -153,9 +154,7 @@ export default function Threads() {
                                             {key}:
                                           </span>{' '}
                                           <span className="text-amber-700 font-mono bg-amber-100 px-1 rounded">
-                                            {typeof value === 'string'
-                                              ? value
-                                              : JSON.stringify(value)}
+                                            {value}
                                           </span>
                                         </div>
                                       )
@@ -164,6 +163,38 @@ export default function Threads() {
                                 )}
                             </div>
                           ))}
+                        {message.type === 'tool' &&
+                          parseToolContent(message.content).map(
+                            (toolContent, toolIndex) => (
+                              <div
+                                key={`${toolContent.type}-${toolIndex}`}
+                                className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-md"
+                              >
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-xs font-medium px-2 py-1 bg-emerald-100 text-emerald-800 rounded">
+                                    🔄 Tool Response
+                                  </span>
+                                  <span className="text-sm font-medium text-emerald-900">
+                                    {toolContent.type}
+                                  </span>
+                                </div>
+                                <div className="space-y-1">
+                                  {Array.from(
+                                    toolContent.attributes.entries()
+                                  ).map(([key, value]) => (
+                                    <div key={key} className="text-xs">
+                                      <span className="font-medium text-emerald-800">
+                                        {key}:
+                                      </span>{' '}
+                                      <span className="text-emerald-700 font-mono bg-emerald-100 px-1 rounded">
+                                        {value}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )
+                          )}
                       </div>
                     </div>
                   )

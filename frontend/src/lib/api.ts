@@ -8,12 +8,12 @@ function validateResponse(res: Response): Response {
 }
 
 export async function logout(): Promise<void> {
-  const res = await fetch('api/auth/logout', { method: 'POST' })
+  const res = await fetch('/ragpile/api/auth/logout', { method: 'POST' })
   validateResponse(res)
 }
 
 export async function me(): Promise<User> {
-  const res = await fetch('api/auth/me', { method: 'GET' })
+  const res = await fetch('/ragpile/api/auth/me', { method: 'GET' })
   return await validateResponse(res).json()
 }
 
@@ -24,7 +24,9 @@ type GoogleAuthResponse = {
 export async function getGoogleTokenURL(
   reason: string
 ): Promise<GoogleAuthResponse> {
-  const res = await fetch('api/google_token/' + reason, { method: 'GET' })
+  const res = await fetch('/ragpile/api/google_token/' + reason, {
+    method: 'GET',
+  })
   return await validateResponse(res).json()
 }
 
@@ -42,7 +44,7 @@ export async function googleCallback(
 export async function telegramCallback(
   telegramUser: TelegramUser
 ): Promise<User> {
-  const res = await fetch('api/telegram_callback', {
+  const res = await fetch('/ragpile/api/telegram_callback', {
     method: 'POST',
     body: JSON.stringify(telegramUser),
     headers: { 'Content-type': 'application/json' },
@@ -51,11 +53,11 @@ export async function telegramCallback(
 }
 
 export async function getThreads(): Promise<ThreadItem[]> {
-  const res = await fetch('api/threads', { method: 'GET' })
+  const res = await fetch('/ragpile/api/threads', { method: 'GET' })
   return await validateResponse(res).json()
 }
 
 export async function getThread(id: string): Promise<Thread> {
-  const res = await fetch('api/threads/' + id, { method: 'GET' })
+  const res = await fetch('/ragpile/api/threads/' + id, { method: 'GET' })
   return await validateResponse(res).json()
 }
