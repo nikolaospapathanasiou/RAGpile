@@ -37,7 +37,6 @@ def start(
                 User, await session.scalar(User.select_user_from_telegram_id(user_id))
             )
             if not user:
-                await session.commit()
                 return
             if not update.effective_chat:
                 return
@@ -46,7 +45,6 @@ def start(
             )
             await session.execute(User.update_integrations(user))
             await update.message.reply_text(user.email)
-            await session.commit()
 
     return _start
 

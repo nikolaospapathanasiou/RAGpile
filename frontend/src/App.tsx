@@ -5,6 +5,7 @@ import { UserContext, UserProvider } from '@/contexts/auth-context.tsx'
 import { useApi } from '@/hooks/use-api.ts'
 import { me } from '@/lib/api'
 import Home from '@/pages/Home.tsx'
+import Threads from '@/pages/Threads.tsx'
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function AppRoutes() {
     <Router>
       <Routes>
         <Route path="/ragpile/" element={<Home />} />
+        <Route path="/ragpile/threads" element={<Threads />} />
       </Routes>
     </Router>
   )

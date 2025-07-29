@@ -32,7 +32,11 @@ export type Thread = {
     messages: {
       content: string
       type: 'human' | 'ai'
-      tool_calls: {}[]
+      tool_calls: {
+        id: string
+        name: string
+        args: Map<string, string>
+      }[]
     }[]
   }
 }

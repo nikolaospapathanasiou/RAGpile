@@ -1,6 +1,6 @@
 import os
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
+from typing import AsyncContextManager, AsyncIterator, Callable
 
 from apscheduler.executors.pool import ThreadPoolExecutor  # type: ignore
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore  # type: ignore
@@ -45,20 +45,23 @@ def create_engine() -> AsyncEngine:
 
 
 ENGINE = create_engine()
-SESSIONFACTORY = async_sessionmaker(bind=ENGINE)
 
 
-@asynccontextmanager
-async def get_session_factory() -> AsyncIterator[AsyncSession]:
-    async with SESSIONFACTORY() as session:
-        async with session.begin():
-            yield session
+def create_session_factory(
+    engine: AsyncEngine,
+) -> Callable[[], AsyncIterator[AsyncSession]]:
+    session_maker = async_sessionmaker(bind=engine)
+
+    async def _session_factory() -> AsyncIterator[AsyncSession]:
+        async with session_maker() as session:
+            async with session.begin():
+                yield session
+
+    return _session_factory
 
 
-async def get_session() -> AsyncIterator[AsyncSession]:
-    async with SESSIONFACTORY() as session:
-        async with session.begin():
-            yield session
+get_session = create_session_factory(ENGINE)
+get_session_factory = asynccontextmanager(get_session)
 
 
 ######## JWT ########
@@ -124,11 +127,14 @@ def get_checkpointer() -> LazyAsyncPostgresSaver:
 set_debug(True)
 
 
-def new_graph() -> CompiledStateGraph:
+def new_graph(
+    checkpointer: LazyAsyncPostgresSaver,
+    session_factory: Callable[[], AsyncContextManager[AsyncSession]],
+) -> CompiledStateGraph:
     return create_graph(
-        checkpointer=CHECKPOINTER,
+        checkpointer=checkpointer,
         llm=init_chat_model("gpt-3.5-turbo"),
-        session_factory=get_session_factory,
+        session_factory=session_factory,
         client_id=os.environ["GOOGLE_CLIENT_ID"],
         client_secret=os.environ["GOOGLE_CLIENT_SECRET"],
         google_search_api_key=os.environ["GOOGLE_SEARCH_API_KEY"],
@@ -143,15 +149,6 @@ TELEGRAM_APPLICATION_TOKEN = os.environ["TELEGRAM_APPLICATION_TOKEN"]
 
 def get_telegram_application_token() -> str:
     return TELEGRAM_APPLICATION_TOKEN
-
-
-TELEGRAM_APPLICATION = new_telegram_application(
-    TELEGRAM_APPLICATION_TOKEN, get_session_factory, new_graph()
-)
-
-
-def get_telegram_application() -> Application:
-    return TELEGRAM_APPLICATION
 
 
 ######## Neo4j ########

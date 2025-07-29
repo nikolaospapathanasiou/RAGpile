@@ -1,5 +1,5 @@
 import { useContext, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -77,12 +77,17 @@ export default function Home() {
             <h1 className="text-2xl font-bold text-gray-900">RAGpile</h1>
             <p className="text-gray-600">Welcome back, {user.email}</p>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => logout().then(() => setUser(null))}
-          >
-            Logout
-          </Button>
+          <div className="flex items-center gap-3">
+            <Link to="/ragpile/threads">
+              <Button variant="outline">View Threads</Button>
+            </Link>
+            <Button
+              variant="outline"
+              onClick={() => logout().then(() => setUser(null))}
+            >
+              Logout
+            </Button>
+          </div>
         </header>
 
         <Separator />

@@ -14,16 +14,20 @@ from telegram.ext import Application
 
 from dependencies import (
     CHECKPOINTER,
-    ENGINE,
+    TELEGRAM_APPLICATION_TOKEN,
+    create_engine,
+    create_session_factory,
     get_scheduler,
     get_session,
-    get_telegram_application,
+    new_checkpointer,
+    new_graph,
 )
 from log import init_logger
 from models import User
 from routers.auth import auth_router
 from routers.openai_wrapper import openai_router
 from routers.threads import threads_router
+from telegram_bot.application import new_telegram_application
 
 init_logger()
 logger = logging.getLogger(__name__)
@@ -31,7 +35,15 @@ logger = logging.getLogger(__name__)
 
 def run_telegram_application(stop_event: threading.Event):
     async def _run() -> None:
-        application = get_telegram_application()
+        session_factory = asynccontextmanager(create_session_factory(create_engine()))
+        checkpointer = new_checkpointer()
+        await checkpointer.connect()
+        application = new_telegram_application(
+            TELEGRAM_APPLICATION_TOKEN,
+            session_factory,
+            new_graph(checkpointer, session_factory),
+        )
+
         await application.initialize()
         assert application.updater is not None
         await application.updater.start_polling(poll_interval=10.0, timeout=30)
@@ -43,6 +55,7 @@ def run_telegram_application(stop_event: threading.Event):
         await application.updater.stop()
         await application.stop()
         await application.shutdown()
+        await checkpointer.close()
 
     loop = asyncio.new_event_loop()
     loop.run_until_complete(_run())
