@@ -15,6 +15,8 @@ import {
 } from '@/lib/api'
 import { TelegramUser } from '@/models'
 
+import { Layout } from './Layout'
+
 function StatusIndicator({ isConnected }: { isConnected: boolean }) {
   return (
     <div className="flex items-center gap-2">
@@ -66,43 +68,18 @@ function Integration({
 }
 
 export default function Home() {
-  const { user, setUser } = useContext(UserContext)
-  if (!user) return null
-
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="mx-auto max-w-6xl space-y-8">
-        <header className="flex items-center justify-between rounded-lg bg-white p-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">RAGpile</h1>
-            <p className="text-gray-600">Welcome back, {user.email}</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link to="/ragpile/threads">
-              <Button variant="outline">View Threads</Button>
-            </Link>
-            <Button
-              variant="outline"
-              onClick={() => logout().then(() => setUser(null))}
-            >
-              Logout
-            </Button>
-          </div>
-        </header>
-
-        <Separator />
-
-        <section>
-          <h2 className="mb-6 text-xl font-semibold text-gray-900">
-            Integrations
-          </h2>
-          <div className="grid gap-6 md:grid-cols-2">
-            <Email />
-            <Telegram />
-          </div>
-        </section>
-      </div>
-    </div>
+    <Layout>
+      <section>
+        <h2 className="mb-6 text-xl font-semibold text-gray-900">
+          Integrations
+        </h2>
+        <div className="grid gap-6 md:grid-cols-2">
+          <Email />
+          <Telegram />
+        </div>
+      </section>
+    </Layout>
   )
 }
 
@@ -217,7 +194,7 @@ function Telegram() {
         {isConnected && (
           <div className="rounded-md bg-green-50 p-3">
             <p className="text-sm text-green-800">
-              ✅ Telegram bot is connected and ready to receive messages.
+              ✅ Telegram bot is connected.
             </p>
           </div>
         )}

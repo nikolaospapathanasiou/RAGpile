@@ -3,17 +3,16 @@ import logging
 import os
 import threading
 from contextlib import asynccontextmanager
-from typing import Annotated, Optional, cast
+from typing import Annotated, Optional
 
 import debugpy  # type: ignore
 from fastapi import Depends, FastAPI, HTTPException
-from psycopg_pool import ConnectionPool
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from telegram.ext import Application
 
 from dependencies import (
     CHECKPOINTER,
+    ENGINE,
     TELEGRAM_APPLICATION_TOKEN,
     create_engine,
     create_session_factory,
