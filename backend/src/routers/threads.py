@@ -18,9 +18,9 @@ logger = logging.getLogger(__name__)
 
 
 class ResponseThread(BaseModel):
-    thread_id: str
+    id: str
     user_id: str
-    timestamp: datetime
+    created_at: datetime
 
 
 @threads_router.get("/threads", response_model=list[ResponseThread])
@@ -35,9 +35,9 @@ async def get_threads(
 
     return [
         ResponseThread(
-            thread_id=thread.thread_id,
+            id=thread.thread_id,
             user_id=thread.user_id,
-            timestamp=thread.timestamp,
+            created_at=thread.timestamp,
         )
         for thread in threads
     ]

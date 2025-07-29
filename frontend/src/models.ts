@@ -18,3 +18,21 @@ export type TelegramUser = {
   auth_date: number
   hash: string
 }
+
+export type ThreadItem = {
+  id: string
+  user_id: string
+  created_at: string
+}
+
+export type Thread = {
+  id: string
+  ts: string
+  channel_values: {
+    messages: {
+      content: string
+      type: 'human' | 'ai'
+      tool_calls: {}[]
+    }[]
+  }
+}
