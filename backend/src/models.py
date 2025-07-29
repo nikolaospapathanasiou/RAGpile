@@ -54,6 +54,6 @@ class Thread(Base):
 
     thread_id: Mapped[str] = mapped_column(String)
     user_id: Mapped[str] = mapped_column(String, nullable=False)
-    timestamp: Mapped[int] = mapped_column(postgresql.TIMESTAMP, nullable=False)
+    timestamp: Mapped[datetime] = mapped_column(postgresql.TIMESTAMP, nullable=False)
 
     __table_args__ = (PrimaryKeyConstraint("user_id", "thread_id"),)

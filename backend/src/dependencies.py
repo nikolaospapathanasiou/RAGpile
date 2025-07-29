@@ -24,7 +24,7 @@ from telegram.ext import Application
 
 from agent.graph import create_graph
 from agent.postgres_saver import LazyAsyncPostgresSaver
-from auth.token import TokenManager, get_current_user_factory
+from jwt_token import TokenManager, get_current_user_factory
 from neo4j_client import Neo4jClient
 from telegram_bot.application import new_telegram_application
 
@@ -113,6 +113,11 @@ def new_checkpointer() -> LazyAsyncPostgresSaver:
 
 
 CHECKPOINTER = new_checkpointer()
+
+
+def get_checkpointer() -> LazyAsyncPostgresSaver:
+    return CHECKPOINTER
+
 
 ######## Graphs ########
 
