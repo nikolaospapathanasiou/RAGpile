@@ -1,10 +1,12 @@
 import logging
 from dataclasses import dataclass
-from typing import Annotated, Any, AsyncContextManager, Callable, List, Type
+from typing import List, Type
 
 from googleapiclient.discovery import build  # type: ignore
 from langchain_core.tools import BaseTool, BaseToolkit
 from pydantic import BaseModel
+
+from tools.base import AsyncBaseTool
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +36,7 @@ class SearchInput(BaseModel):
     query: str
 
 
-class GoogleSearchTool(BaseTool):
+class GoogleSearchTool(AsyncBaseTool):
     name: str = "google_search"
     description: str = (
         "Search Google for information using the Google Custom Search API"
@@ -43,12 +45,6 @@ class GoogleSearchTool(BaseTool):
 
     google_search_api_key: str
     google_search_engine_id: str
-    handle_tool_error: bool = True
-    handle_validation_error: bool = True
-    verbose: bool = True
-
-    def _run(self, query: str) -> List[SearchResult]:
-        raise NotImplementedError
 
     async def _arun(self, query: str) -> List[SearchResult]:
         service = build("customsearch", "v1", developerKey=self.google_search_api_key)
@@ -71,4 +67,3 @@ class GoogleSearchTool(BaseTool):
             )
             search_results.append(search_result)
         return search_results
-

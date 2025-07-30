@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import User
+from src.tools.base import GoogleBaseTool
 
 logger = logging.getLogger(__name__)
 
@@ -62,38 +63,17 @@ class CreateEventInput(BaseModel):
     attendees: Optional[List[str]] = None
 
 
-class CalendarListEventsTool(BaseTool):
+class CalendarListEventsTool(GoogleBaseTool):
     name: str = "calendar_list_events"
     description: str = "List upcoming calendar events from Google Calendar"
     args_schema: Type[BaseModel] = EmptyInput
 
-    session_factory: Callable[[], AsyncContextManager[AsyncSession]]
-    client_id: str
-    client_secret: str
-    handle_tool_error: bool = True
-    handle_validation_error: bool = True
-    verbose: bool = True
-
-    def _run(self, config: RunnableConfig) -> List[CalendarEvent]:
-        raise NotImplementedError
-
     async def _arun(self, config: RunnableConfig) -> List[CalendarEvent]:
-        user_id = config["configurable"]["user_id"]
-        async with self.session_factory() as session:
-            user = await session.get(User, user_id)
-            if not user:
-                raise ValueError(f"User {user_id} not found")
-            session.expunge(user)
-
-        credentials = Credentials(
-            token=user.integrations.get("calendar", {}).get("access_token"),
-            refresh_token=user.integrations.get("calendar", {}).get("refresh_token"),
-            token_uri="https://oauth2.googleapis.com/token",
-            client_id=self.client_id,
-            client_secret=self.client_secret,
-            scopes=["https://www.googleapis.com/auth/calendar"],
+        credentials = self._create_credentials(
+            await self._get_user(config),
+            "https://www.googleapis.com/auth/calendar.events",
+            "calendar",
         )
-
         service = build("calendar", "v3", credentials=credentials)
 
         now = datetime.utcnow().isoformat() + "Z"
@@ -147,29 +127,10 @@ class CalendarListEventsTool(BaseTool):
         )
 
 
-class CalendarCreateEventTool(BaseTool):
+class CalendarCreateEventTool(GoogleBaseTool):
     name: str = "calendar_create_event"
     description: str = "Create a new event in Google Calendar"
     args_schema: Type[BaseModel] = CreateEventInput
-
-    session_factory: Callable[[], AsyncContextManager[AsyncSession]]
-    client_id: str
-    client_secret: str
-    handle_tool_error: bool = True
-    handle_validation_error: bool = True
-    verbose: bool = True
-
-    def _run(
-        self,
-        summary: str,
-        start_datetime: str,
-        end_datetime: str,
-        description: Optional[str],
-        location: Optional[str],
-        attendees: Optional[List[str]],
-        config: RunnableConfig,
-    ) -> CalendarEvent:
-        raise NotImplementedError
 
     async def _arun(
         self,
@@ -181,22 +142,11 @@ class CalendarCreateEventTool(BaseTool):
         attendees: Optional[List[str]],
         config: RunnableConfig,
     ) -> CalendarEvent:
-        user_id = config["configurable"]["user_id"]
-        async with self.session_factory() as session:
-            user = await session.get(User, user_id)
-            if not user:
-                raise ValueError(f"User {user_id} not found")
-            session.expunge(user)
-
-        credentials = Credentials(
-            token=user.integrations.get("calendar", {}).get("access_token"),
-            refresh_token=user.integrations.get("calendar", {}).get("refresh_token"),
-            token_uri="https://oauth2.googleapis.com/token",
-            client_id=self.client_id,
-            client_secret=self.client_secret,
-            scopes=["https://www.googleapis.com/auth/calendar"],
+        credentials = self._create_credentials(
+            await self._get_user(config),
+            "https://www.googleapis.com/auth/calendar.events",
+            "calendar",
         )
-
         service = build("calendar", "v3", credentials=credentials)
 
         event_body = {
@@ -249,4 +199,3 @@ class CalendarCreateEventTool(BaseTool):
             created=event.get("created"),
             updated=event.get("updated"),
         )
-

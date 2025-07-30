@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import User
+from src.tools.base import GoogleBaseTool
 
 logger = logging.getLogger(__name__)
 
@@ -49,35 +50,14 @@ class EmptyInput(BaseModel):
     pass
 
 
-class GmailReadUnreadTool(BaseTool):
+class GmailReadUnreadTool(GoogleBaseTool):
     name: str = "gmail_read_unread"
     description: str = "Read unread emails from Gmail"
     args_schema: Type[BaseModel] = EmptyInput
 
-    session_factory: Callable[[], AsyncContextManager[AsyncSession]]
-    client_id: str
-    client_secret: str
-    handle_tool_error: bool = True
-    handle_validation_error: bool = True
-    verbose: bool = True
-
-    def _run(self, config: RunnableConfig) -> List[EmailMessage]:
-        raise NotImplementedError
-
     async def _arun(self, config: RunnableConfig) -> List[EmailMessage]:
-        user_id = config["configurable"]["user_id"]
-        async with self.session_factory() as session:
-            user = await session.get(User, user_id)
-            if not user:
-                raise ValueError(f"User {user_id} not found")
-            session.expunge(user)
-        credentials = Credentials(
-            token=user.integrations.get("email", {}).get("access_token"),
-            refresh_token=user.integrations.get("email", {}).get("refresh_token"),
-            token_uri="https://oauth2.googleapis.com/token",
-            client_id=self.client_id,
-            client_secret=self.client_secret,
-            scopes=["https://mail.google.com/"],
+        credentials = self._create_credentials(
+            await self._get_user(config), "https://mail.google.com/", "email"
         )
         service = build("gmail", "v1", credentials=credentials)
         results = (

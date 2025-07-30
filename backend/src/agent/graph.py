@@ -14,6 +14,7 @@ from langgraph.prebuilt import ToolNode
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing_extensions import TypedDict
 
+from tools.calendar import GoogleCalendarToolkit
 from tools.email import GmailToolkit
 from tools.search import GoogleSearchToolkit
 
@@ -68,7 +69,12 @@ def create_graph(
         google_search_api_key=google_search_api_key,
         google_search_engine_id=google_search_engine_id,
     ).get_tools()
-    tools = gmail_tools + search_tools
+    calendar_tools = GoogleCalendarToolkit(
+        session_factory=session_factory,
+        client_id=client_id,
+        client_secret=client_secret,
+    ).get_tools()
+    tools = gmail_tools + search_tools + calendar_tools
 
     llm_with_tools = llm.bind_tools(tools)
 

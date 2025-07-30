@@ -46,6 +46,7 @@ class ResponseUser(BaseModel):
 
 class ReasonEnum(str, Enum):
     EMAIL = "email"
+    CALENDAR = "calendar"
 
 
 @auth_router.get("/auth/me", response_model=ResponseUser)
@@ -63,6 +64,8 @@ async def logout(response: Response):
 async def new_token(reason: ReasonEnum):
     if reason == ReasonEnum.EMAIL:
         scope = "https://mail.google.com/"
+    elif reason == ReasonEnum.CALENDAR:
+        scope = "https://www.googleapis.com/auth/calendar.events"
     else:
         raise HTTPException(status_code=400, detail="Invalid reason")
     return {

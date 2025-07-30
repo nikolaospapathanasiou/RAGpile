@@ -3,17 +3,11 @@ import { Link, useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { UserContext } from '@/contexts/auth-context'
 import { useApi } from '@/hooks/use-api'
-import {
-  getGoogleTokenURL,
-  googleCallback,
-  logout,
-  telegramCallback,
-} from '@/lib/api'
-import { TelegramUser } from '@/models'
+import { getGoogleTokenURL, googleCallback, telegramCallback } from '@/lib/api'
+import { TelegramUser, User } from '@/models'
 
 import { Layout } from './Layout'
 
@@ -68,22 +62,6 @@ function Integration({
 }
 
 export default function Home() {
-  return (
-    <Layout>
-      <section>
-        <h2 className="mb-6 text-xl font-semibold text-gray-900">
-          Integrations
-        </h2>
-        <div className="grid gap-6 md:grid-cols-2">
-          <Email />
-          <Telegram />
-        </div>
-      </section>
-    </Layout>
-  )
-}
-
-function Email() {
   const { user, setUser } = useContext(UserContext)
   if (!user) return null
 
@@ -91,7 +69,7 @@ function Email() {
   const reason = searchParams.get('reason')
   const code = searchParams.get('code')
 
-  const { loading: googleTokenLoading, fn } = useApi(() =>
+  const { loading: loading, fn } = useApi(() =>
     googleCallback(reason || '', code || '')
   )
 
@@ -104,13 +82,69 @@ function Email() {
     }
   }, [])
 
+  return (
+    <Layout>
+      <section>
+        <h2 className="mb-6 text-xl font-semibold text-gray-900">
+          Integrations
+        </h2>
+        <div className="grid gap-6 md:grid-cols-2">
+          <Email loading={loading} user={user} />
+          <Calendar loading={loading} user={user} />
+          <Telegram user={user} setUser={setUser} />
+        </div>
+      </section>
+    </Layout>
+  )
+}
+
+function Calendar({ loading, user }: { loading: boolean; user: User }) {
+  const isConnected = user.integrations?.['calendar']?.active ?? false
+
+  return (
+    <Integration
+      title="📅 Calendar Integration"
+      isConnected={isConnected}
+      isLoading={loading}
+    >
+      <div className="space-y-4">
+        <p className="text-sm text-gray-600">
+          Connect your Google account to enable calendar functionality for your
+          personal assistant.
+        </p>
+        {!isConnected && (
+          <Button
+            disabled={loading}
+            onClick={() =>
+              getGoogleTokenURL('calendar').then(({ auth_url: authURL }) => {
+                window.location.href = authURL
+              })
+            }
+            className="w-full"
+          >
+            {loading ? 'Connecting...' : '🔗 Connect Google Account'}
+          </Button>
+        )}
+        {isConnected && (
+          <div className="rounded-md bg-green-50 p-3">
+            <p className="text-sm text-green-800">
+              ✅ Calendar integration is active and ready to use.
+            </p>
+          </div>
+        )}
+      </div>
+    </Integration>
+  )
+}
+
+function Email({ loading, user }: { loading: boolean; user: User }) {
   const isConnected = user.integrations?.['email']?.active ?? false
 
   return (
     <Integration
       title="📧 Email Integration"
       isConnected={isConnected}
-      isLoading={googleTokenLoading}
+      isLoading={loading}
     >
       <div className="space-y-4">
         <p className="text-sm text-gray-600">
@@ -119,7 +153,7 @@ function Email() {
         </p>
         {!isConnected && (
           <Button
-            disabled={googleTokenLoading}
+            disabled={loading}
             onClick={() =>
               getGoogleTokenURL('email').then(({ auth_url: authURL }) => {
                 window.location.href = authURL
@@ -127,7 +161,7 @@ function Email() {
             }
             className="w-full"
           >
-            {googleTokenLoading ? 'Connecting...' : '🔗 Connect Google Account'}
+            {loading ? 'Connecting...' : '🔗 Connect Google Account'}
           </Button>
         )}
         {isConnected && (
@@ -142,9 +176,13 @@ function Email() {
   )
 }
 
-function Telegram() {
-  const { user, setUser } = useContext(UserContext)
-
+function Telegram({
+  user,
+  setUser,
+}: {
+  user: User
+  setUser: (user: User) => void
+}) {
   useEffect(() => {
     ;(window as any).onTelegramAuth = (telegramUser: TelegramUser) => {
       console.log('Telegram login success:', telegramUser)

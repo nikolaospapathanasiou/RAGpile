@@ -24,7 +24,8 @@ class User(Base):
         if name not in self.integrations:
             return False
         integration = self.integrations[name]
-        if name == "email":
+
+        def validate_google_integration(integration: dict[str, str]) -> bool:
             utc_now = datetime.now(timezone.utc)
             utc_timestamp = int(utc_now.timestamp())
             refresh_token_expiry = integration.get("refresh_token_expiry")
@@ -32,8 +33,13 @@ class User(Base):
                 refresh_token_expiry is not None
                 and int(refresh_token_expiry) > utc_timestamp
             )
+
+        if name in ("email", "calendar"):
+            return validate_google_integration(integration)
+
         if name == "telegram":
             return "user_id" in integration
+
         raise ValueError(f"Unknown integration name {name}")
 
     @classmethod
