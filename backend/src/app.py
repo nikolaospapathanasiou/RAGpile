@@ -20,6 +20,7 @@ from dependencies import (
     get_session,
     new_checkpointer,
     new_graph,
+    new_graphiti,
 )
 from log import init_logger
 from models import User
@@ -34,13 +35,19 @@ logger = logging.getLogger(__name__)
 
 def run_telegram_application(stop_event: threading.Event):
     async def _run() -> None:
+        graphiti = new_graphiti()
+        await graphiti.build_indices_and_constraints()
         session_factory = asynccontextmanager(create_session_factory(create_engine()))
         checkpointer = new_checkpointer()
         await checkpointer.connect()
         application = new_telegram_application(
             TELEGRAM_APPLICATION_TOKEN,
             session_factory,
-            new_graph(checkpointer, session_factory),
+            new_graph(
+                graphiti=graphiti,
+                checkpointer=checkpointer,
+                session_factory=session_factory,
+            ),
         )
 
         await application.initialize()
@@ -55,6 +62,7 @@ def run_telegram_application(stop_event: threading.Event):
         await application.stop()
         await application.shutdown()
         await checkpointer.close()
+        await graphiti.close()
 
     loop = asyncio.new_event_loop()
     loop.run_until_complete(_run())
@@ -65,6 +73,7 @@ async def lifespan(_: FastAPI):
     logger.info("Starting up checkpointer")
     await CHECKPOINTER.connect()
     await CHECKPOINTER.setup()
+    logger.info("Starting up telegram application")
     stop_event = threading.Event()
     telegram_thread = threading.Thread(
         target=run_telegram_application, args=(stop_event,)
@@ -87,6 +96,7 @@ async def lifespan(_: FastAPI):
     await ENGINE.dispose()
     logger.info("Shutting down checkpointer")
     await CHECKPOINTER.close()
+    logger.info("Shutting down graphiti")
 
 
 app = FastAPI(lifespan=lifespan)

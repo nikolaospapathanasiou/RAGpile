@@ -4,14 +4,13 @@ from dataclasses import dataclass
 from typing import Any, AsyncContextManager, Callable, Dict, List, Optional, Type
 
 from bs4 import BeautifulSoup
-from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build  # type: ignore
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool, BaseToolkit
 from pydantic import BaseModel
+from pydantic.fields import PrivateAttr
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import User
 from src.tools.base import GoogleBaseTool
 
 logger = logging.getLogger(__name__)
@@ -31,19 +30,29 @@ class EmailMessage:  # pylint: disable=too-many-instance-attributes
 
 
 class GmailToolkit(BaseToolkit):
+    _session_factory: Callable[[], AsyncContextManager[AsyncSession]] = PrivateAttr()
+    _client_id: str = PrivateAttr()
+    _client_secret: str = PrivateAttr()
 
-    session_factory: Callable[[], AsyncContextManager[AsyncSession]]
-    client_id: str
-    client_secret: str
+    def __init__(
+        self,
+        *args,
+        session_factory: Callable[[], AsyncContextManager[AsyncSession]],
+        client_id: str,
+        client_secret: str,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self._session_factory = session_factory
+        self._client_id = client_id
+        self._client_secret = client_secret
 
     def get_tools(self) -> List[BaseTool]:
-        return [
-            GmailReadUnreadTool(
-                session_factory=self.session_factory,
-                client_id=self.client_id,
-                client_secret=self.client_secret,
-            )
-        ]
+        unread_tool = GmailReadUnreadTool()
+        unread_tool._session_factory = self._session_factory
+        unread_tool._client_id = self._client_id
+        unread_tool._client_secret = self._client_secret
+        return [unread_tool]
 
 
 class EmptyInput(BaseModel):

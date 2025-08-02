@@ -1,17 +1,16 @@
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, AsyncContextManager, Callable, Dict, List, Optional, Type
 
-from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build  # type: ignore
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool, BaseToolkit
 from pydantic import BaseModel
+from pydantic.fields import PrivateAttr
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import User
-from src.tools.base import GoogleBaseTool
+from tools.base import GoogleBaseTool
 
 logger = logging.getLogger(__name__)
 
@@ -30,24 +29,31 @@ class CalendarEvent:
 
 
 class GoogleCalendarToolkit(BaseToolkit):
+    _session_factory: Callable[[], AsyncContextManager[AsyncSession]] = PrivateAttr()
+    _client_id: str = PrivateAttr()
+    _client_secret: str = PrivateAttr()
 
-    session_factory: Callable[[], AsyncContextManager[AsyncSession]]
-    client_id: str
-    client_secret: str
+    def __init__(
+        self,
+        session_factory: Callable[[], AsyncContextManager[AsyncSession]],
+        client_id: str,
+        client_secret: str,
+    ):
+        super().__init__()
+        self._session_factory = session_factory
+        self._client_id = client_id
+        self._client_secret = client_secret
 
     def get_tools(self) -> List[BaseTool]:
-        return [
-            CalendarListEventsTool(
-                session_factory=self.session_factory,
-                client_id=self.client_id,
-                client_secret=self.client_secret,
-            ),
-            CalendarCreateEventTool(
-                session_factory=self.session_factory,
-                client_id=self.client_id,
-                client_secret=self.client_secret,
-            ),
+        tools: list[BaseTool] = [
+            CalendarListEventsTool(),
+            CalendarCreateEventTool(),
         ]
+        for tool in tools:
+            tool._session_factory = self._session_factory
+            tool._client_id = self._client_id
+            tool._client_secret = self._client_secret
+        return tools
 
 
 class EmptyInput(BaseModel):

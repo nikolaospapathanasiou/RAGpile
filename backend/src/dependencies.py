@@ -8,6 +8,7 @@ from apscheduler.schedulers.background import (  # type: ignore
     BackgroundScheduler,
     BaseScheduler,
 )
+from graphiti_core import Graphiti
 from langchain.chat_models import init_chat_model
 from langchain.globals import set_debug
 from langgraph.graph.state import CompiledStateGraph
@@ -20,13 +21,11 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from telegram.ext import Application
 
 from agent.graph import create_graph
 from agent.postgres_saver import LazyAsyncPostgresSaver
 from jwt_token import TokenManager, get_current_user_factory
 from neo4j_client import Neo4jClient
-from telegram_bot.application import new_telegram_application
 
 
 ######### DATABASE #########
@@ -129,6 +128,7 @@ set_debug(True)
 
 def new_graph(
     checkpointer: LazyAsyncPostgresSaver,
+    graphiti: Graphiti,
     session_factory: Callable[[], AsyncContextManager[AsyncSession]],
 ) -> CompiledStateGraph:
     return create_graph(
@@ -139,6 +139,7 @@ def new_graph(
         client_secret=os.environ["GOOGLE_CLIENT_SECRET"],
         google_search_api_key=os.environ["GOOGLE_SEARCH_API_KEY"],
         google_search_engine_id=os.environ["GOOGLE_SEARCH_ENGINE_ID"],
+        graphiti=graphiti,
     )
 
 
@@ -151,15 +152,12 @@ def get_telegram_application_token() -> str:
     return TELEGRAM_APPLICATION_TOKEN
 
 
-######## Neo4j ########
+######## Graphiti ########
 
-NEO4J_CLIENT = Neo4jClient(
-    driver=GraphDatabase.driver(
-        uri=os.environ["NEO4J_URI"],
-        auth=(os.environ["NEO4J_USERNAME"], os.environ["NEO4J_PASSWORD"]),
+
+def new_graphiti() -> Graphiti:
+    return Graphiti(
+        os.environ["NEO4J_URI"],
+        os.environ["NEO4J_USERNAME"],
+        os.environ["NEO4J_PASSWORD"],
     )
-)
-
-
-def get_neo4j_client() -> Neo4jClient:
-    return NEO4J_CLIENT

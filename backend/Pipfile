@@ -21,6 +21,7 @@ python-telegram-bot = "*"
 neo4j = "*"
 google-api-python-client = "*"
 beautifulsoup4 = "*"
+graphiti-core = "*"
 
 [dev-packages]
 pylint = "*"

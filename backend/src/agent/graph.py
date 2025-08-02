@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Annotated, AsyncContextManager, Callable
 
+from graphiti_core import Graphiti
 from langchain_core.language_models.base import LanguageModelInput
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import BaseMessage
@@ -16,6 +17,7 @@ from typing_extensions import TypedDict
 
 from tools.calendar import GoogleCalendarToolkit
 from tools.email import GmailToolkit
+from tools.graphiti import GraphitiToolkit
 from tools.search import GoogleSearchToolkit
 
 
@@ -52,6 +54,7 @@ def should_continue(state: State) -> str:
 
 
 def create_graph(
+    graphiti: Graphiti,
     checkpointer: AsyncPostgresSaver,
     llm: BaseChatModel,
     session_factory: Callable[[], AsyncContextManager[AsyncSession]],
@@ -74,7 +77,8 @@ def create_graph(
         client_id=client_id,
         client_secret=client_secret,
     ).get_tools()
-    tools = gmail_tools + search_tools + calendar_tools
+    graphiti_tools = GraphitiToolkit(graphiti=graphiti).get_tools()
+    tools = gmail_tools + search_tools + calendar_tools + graphiti_tools
 
     llm_with_tools = llm.bind_tools(tools)
 
