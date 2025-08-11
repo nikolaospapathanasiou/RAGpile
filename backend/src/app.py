@@ -21,6 +21,7 @@ from dependencies import (
     new_checkpointer,
     new_graph,
     new_graphiti,
+    new_tools,
 )
 from log import init_logger
 from models import User
@@ -44,9 +45,8 @@ def run_telegram_application(stop_event: threading.Event):
             TELEGRAM_APPLICATION_TOKEN,
             session_factory,
             new_graph(
-                graphiti=graphiti,
                 checkpointer=checkpointer,
-                session_factory=session_factory,
+                tools=new_tools(graphiti=graphiti, session_factory=session_factory),
             ),
         )
 

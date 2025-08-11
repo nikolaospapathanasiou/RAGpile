@@ -7,6 +7,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import BaseMessage
 from langchain_core.messages.system import SystemMessage
 from langchain_core.runnables import Runnable, RunnableLambda
+from langchain_core.tools.base import BaseTool
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
@@ -53,16 +54,15 @@ def should_continue(state: State) -> str:
     return END
 
 
-def create_graph(
+def create_tools(
     graphiti: Graphiti,
-    checkpointer: AsyncPostgresSaver,
-    llm: BaseChatModel,
     session_factory: Callable[[], AsyncContextManager[AsyncSession]],
     client_id: str,
     client_secret: str,
     google_search_api_key: str,
     google_search_engine_id: str,
-) -> CompiledStateGraph:
+) -> list[BaseTool]:
+
     gmail_tools = GmailToolkit(
         session_factory=session_factory,
         client_id=client_id,
@@ -78,7 +78,14 @@ def create_graph(
         client_secret=client_secret,
     ).get_tools()
     graphiti_tools = GraphitiToolkit(graphiti=graphiti).get_tools()
-    tools = gmail_tools + search_tools + calendar_tools + graphiti_tools
+    return gmail_tools + search_tools + calendar_tools + graphiti_tools
+
+
+def create_graph(
+    checkpointer: AsyncPostgresSaver,
+    llm: BaseChatModel,
+    tools: list[BaseTool],
+) -> CompiledStateGraph:
 
     llm_with_tools = llm.bind_tools(tools)
 

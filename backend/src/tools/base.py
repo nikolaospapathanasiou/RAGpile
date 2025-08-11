@@ -1,4 +1,4 @@
-from typing import AsyncContextManager, Callable, ClassVar
+from typing import AsyncContextManager, Callable
 
 from google.oauth2.credentials import Credentials
 from langchain_core.runnables.config import RunnableConfig

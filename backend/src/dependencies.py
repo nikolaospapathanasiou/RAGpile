@@ -11,8 +11,8 @@ from apscheduler.schedulers.background import (  # type: ignore
 from graphiti_core import Graphiti
 from langchain.chat_models import init_chat_model
 from langchain.globals import set_debug
+from langchain_core.tools.base import BaseTool
 from langgraph.graph.state import CompiledStateGraph
-from neo4j import GraphDatabase
 from openai import OpenAI
 from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import (
@@ -22,10 +22,9 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from agent.graph import create_graph
+from agent.graph import create_graph, create_tools
 from agent.postgres_saver import LazyAsyncPostgresSaver
 from jwt_token import TokenManager, get_current_user_factory
-from neo4j_client import Neo4jClient
 
 
 ######### DATABASE #########
@@ -126,20 +125,27 @@ def get_checkpointer() -> LazyAsyncPostgresSaver:
 set_debug(True)
 
 
-def new_graph(
-    checkpointer: LazyAsyncPostgresSaver,
-    graphiti: Graphiti,
-    session_factory: Callable[[], AsyncContextManager[AsyncSession]],
-) -> CompiledStateGraph:
-    return create_graph(
-        checkpointer=checkpointer,
-        llm=init_chat_model("gpt-3.5-turbo"),
+def new_tools(
+    graphiti: Graphiti, session_factory: Callable[[], AsyncContextManager[AsyncSession]]
+) -> list[BaseTool]:
+    return create_tools(
+        graphiti=graphiti,
         session_factory=session_factory,
         client_id=os.environ["GOOGLE_CLIENT_ID"],
         client_secret=os.environ["GOOGLE_CLIENT_SECRET"],
         google_search_api_key=os.environ["GOOGLE_SEARCH_API_KEY"],
         google_search_engine_id=os.environ["GOOGLE_SEARCH_ENGINE_ID"],
-        graphiti=graphiti,
+    )
+
+
+def new_graph(
+    tools: list[BaseTool],
+    checkpointer: LazyAsyncPostgresSaver,
+) -> CompiledStateGraph:
+    return create_graph(
+        tools=tools,
+        checkpointer=checkpointer,
+        llm=init_chat_model("gpt-3.5-turbo"),
     )
 
 
