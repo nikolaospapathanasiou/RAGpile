@@ -7,10 +7,12 @@
     "dev": "node server.js",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "shadcn": "shadcn"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.6",
+    "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-separator": "^1.1.2",
     "@radix-ui/react-slot": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.1.8",
@@ -41,6 +43,7 @@
     "lorem-ipsum": "^2.0.8",
     "postcss": "^8.5.3",
     "prettier": "^3.5.2",
+    "shadcn": "^2.10.0",
     "tailwindcss": "^4.0.9",
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.22.0",

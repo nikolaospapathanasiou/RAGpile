@@ -42,6 +42,7 @@ function AppRoutes() {
         <Route path="/ragpile/threads/:threadId" element={<Threads />} />
         <Route path="/ragpile/threads" element={<Threads />} />
         <Route path="/ragpile/schedules" element={<Schedules />} />
+        <Route path="/ragpile/schedules/:scheduleId" element={<Schedules />} />
       </Routes>
     </Router>
   )

@@ -71,8 +71,7 @@ async def update_schedule(
     if job is None:
         await session.delete(db_schedule)
         raise HTTPException(status_code=404, detail="Schedule not found")
-    new_args = job.args.copy()
-    new_args[0] = in_schedule.code
+    new_args = (in_schedule.code, job.args[1:])
     new_trigger = IntervalTrigger(seconds=in_schedule.interval_seconds)
     new_job: Job = scheduler.modify_job(schedule_id, args=new_args, trigger=new_trigger)
     return ResponseSchedule.from_job(new_job, current_user.id)
