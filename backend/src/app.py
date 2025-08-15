@@ -27,6 +27,7 @@ from log import init_logger
 from models import User
 from routers.auth import auth_router
 from routers.openai_wrapper import openai_router
+from routers.schedules import schedules_router
 from routers.threads import threads_router
 from telegram_bot.application import new_telegram_application
 
@@ -103,6 +104,7 @@ app = FastAPI(lifespan=lifespan)
 app.include_router(auth_router, prefix="/ragpile/api")
 app.include_router(openai_router, prefix="/ragpile/api")
 app.include_router(threads_router, prefix="/ragpile/api")
+app.include_router(schedules_router, prefix="/ragpile/api")
 
 
 class Webhook(BaseModel):

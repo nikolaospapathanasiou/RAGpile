@@ -22,6 +22,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Link to="/ragpile">
               <Button variant="outline">Home</Button>
             </Link>
+            <Link to="/ragpile/schedules">
+              <Button variant="outline">View Schedules</Button>
+            </Link>
             <Link to="/ragpile/threads">
               <Button variant="outline">View Threads</Button>
             </Link>

@@ -1,27 +1,11 @@
 from datetime import datetime, timezone
-from typing import ClassVar, Type
+from typing import Type
 
-from graphiti_core import Graphiti
 from graphiti_core.nodes import EpisodeType
 from langchain_core.runnables.config import RunnableConfig
-from langchain_core.tools.base import BaseToolkit
 from pydantic import BaseModel
-from pydantic.fields import PrivateAttr
 
 from tools.base import AsyncBaseTool
-
-
-class GraphitiToolkit(BaseToolkit):
-    _graphiti: Graphiti = PrivateAttr()
-
-    def __init__(self, graphiti: Graphiti):
-        super().__init__()
-        self._graphiti = graphiti
-
-    def get_tools(self):
-        add_episode_tool = GraphitiAddEpisode()
-        add_episode_tool._graphiti = self._graphiti
-        return [add_episode_tool]
 
 
 class AddEpisodeInput(BaseModel):
@@ -47,12 +31,11 @@ class GraphitiAddEpisode(AsyncBaseTool):
         source: the source of the episode, e.g.: user, tool_name (e.g. google_search)
     """
     args_schema: Type[BaseModel] = AddEpisodeInput
-    _graphiti: Graphiti = PrivateAttr()
 
     async def _arun(
         self, name: str, episode_body: str, source: EpisodeType, config: RunnableConfig
     ) -> None:
-        await self._graphiti.add_episode(
+        await self.dependencies.graphiti.add_episode(
             group_id=self._get_user_id(config),
             name=name,
             episode_body=episode_body,

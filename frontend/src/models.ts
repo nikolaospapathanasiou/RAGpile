@@ -46,6 +46,14 @@ export type ToolContent = {
   attributes: Map<string, string>
 }
 
+export type Schedule = {
+  id: string
+  user_id: string
+  code: string
+  interval_seconds: number
+  next_run_time: Date | null
+}
+
 export function parseToolContent(content: string): ToolContent[] {
   if (content.startsWith('[')) {
     content = content.slice(1, -1)

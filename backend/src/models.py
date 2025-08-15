@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from apscheduler.job import Job
 from sqlalchemy import ForeignKey, Index, PrimaryKeyConstraint, String
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -65,4 +66,16 @@ class Thread(Base):
     __table_args__ = (
         PrimaryKeyConstraint("user_id", "id"),
         Index("created_at_desc_idx", user_id, created_at.desc()),
+    )
+
+
+class Schedule(Base):
+    __tablename__ = "schedules"
+
+    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), nullable=False)
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+
+    __table_args__ = (
+        PrimaryKeyConstraint("user_id", "id"),
+        Index("user_id_idx", user_id),
     )

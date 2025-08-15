@@ -1,3 +1,4 @@
+import asyncio
 import os
 from contextlib import asynccontextmanager
 from typing import AsyncContextManager, AsyncIterator, Callable
@@ -21,10 +22,12 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from telegram import Bot
 
 from agent.graph import create_graph, create_tools
 from agent.postgres_saver import LazyAsyncPostgresSaver
 from jwt_token import TokenManager, get_current_user_factory
+from tools.scheduler import local
 
 
 ######### DATABASE #########
@@ -86,7 +89,21 @@ def new_scheduler() -> BaseScheduler:
         database=os.environ["POSTGRES_SCHEDULER_DB"],
     )
     jobstores = {"default": SQLAlchemyJobStore(url=url)}
-    executors = {"default": ThreadPoolExecutor(5)}
+
+    def _init():
+        asyncio.set_event_loop(asyncio.new_event_loop())
+        local.tools = {
+            tool.name: tool
+            for tool in new_tools(
+                graphiti=new_graphiti(),
+                session_factory=asynccontextmanager(
+                    create_session_factory(create_engine())
+                ),
+            )
+        }
+        local.bot = Bot(token=get_telegram_application_token())
+
+    executors = {"default": ThreadPoolExecutor(1, pool_kwargs={"initializer": _init})}
     job_defaults = {"max_instances": 1, "coalesce": True, "misfire_grace_time": None}
     return BackgroundScheduler(
         jobstores=jobstores, executors=executors, job_defaults=job_defaults
@@ -135,6 +152,7 @@ def new_tools(
         client_secret=os.environ["GOOGLE_CLIENT_SECRET"],
         google_search_api_key=os.environ["GOOGLE_SEARCH_API_KEY"],
         google_search_engine_id=os.environ["GOOGLE_SEARCH_ENGINE_ID"],
+        scheduler=SCHEDULER,
     )
 
 
@@ -145,7 +163,7 @@ def new_graph(
     return create_graph(
         tools=tools,
         checkpointer=checkpointer,
-        llm=init_chat_model("gpt-3.5-turbo"),
+        llm=init_chat_model("gpt-4.1"),
     )
 
 

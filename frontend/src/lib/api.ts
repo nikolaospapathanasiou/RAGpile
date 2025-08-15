@@ -1,4 +1,4 @@
-import { TelegramUser, Thread, ThreadItem, User } from '@/models'
+import { Schedule, TelegramUser, Thread, ThreadItem, User } from '@/models'
 
 function validateResponse(res: Response): Response {
   if (!res.ok) {
@@ -59,5 +59,19 @@ export async function getThreads(): Promise<ThreadItem[]> {
 
 export async function getThread(id: string): Promise<Thread> {
   const res = await fetch('/ragpile/api/threads/' + id, { method: 'GET' })
+  return await validateResponse(res).json()
+}
+
+export async function getSchedules(): Promise<Schedule[]> {
+  const res = await fetch('/ragpile/api/schedules', { method: 'GET' })
+  return await validateResponse(res).json()
+}
+
+export async function updateSchedule(schedule: Schedule): Promise<Schedule> {
+  const res = await fetch(`/ragpile/api/schedules/${schedule.id}`, {
+    method: 'PUT',
+    body: JSON.stringify(schedule),
+    headers: { 'Content-type': 'application/json' },
+  })
   return await validateResponse(res).json()
 }

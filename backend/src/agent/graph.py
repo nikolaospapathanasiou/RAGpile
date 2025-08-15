@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Annotated, AsyncContextManager, Callable
 
+from apscheduler.schedulers.base import BaseScheduler
 from graphiti_core import Graphiti
 from langchain_core.language_models.base import LanguageModelInput
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -16,10 +17,7 @@ from langgraph.prebuilt import ToolNode
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing_extensions import TypedDict
 
-from tools.calendar import GoogleCalendarToolkit
-from tools.email import GmailToolkit
-from tools.graphiti import GraphitiToolkit
-from tools.search import GoogleSearchToolkit
+from tools.toolkit import ToolDependencies, Toolkit
 
 
 class State(TypedDict):
@@ -61,24 +59,20 @@ def create_tools(
     client_secret: str,
     google_search_api_key: str,
     google_search_engine_id: str,
+    scheduler: BaseScheduler,
 ) -> list[BaseTool]:
-
-    gmail_tools = GmailToolkit(
+    dependencies = ToolDependencies(
         session_factory=session_factory,
-        client_id=client_id,
-        client_secret=client_secret,
-    ).get_tools()
-    search_tools = GoogleSearchToolkit(
+        google_client_id=client_id,
+        google_client_secret=client_secret,
         google_search_api_key=google_search_api_key,
         google_search_engine_id=google_search_engine_id,
-    ).get_tools()
-    calendar_tools = GoogleCalendarToolkit(
-        session_factory=session_factory,
-        client_id=client_id,
-        client_secret=client_secret,
-    ).get_tools()
-    graphiti_tools = GraphitiToolkit(graphiti=graphiti).get_tools()
-    return gmail_tools + search_tools + calendar_tools + graphiti_tools
+        scheduler=scheduler,
+        graphiti=graphiti,
+    )
+
+    toolkit = Toolkit(dependencies)
+    return toolkit.get_tools()
 
 
 def create_graph(
