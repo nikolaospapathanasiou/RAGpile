@@ -5,6 +5,7 @@ export function useApi<T, E extends (...args: any[]) => Promise<T>>(
   startLoading: boolean = false
 ): {
   data: T | null
+  setData: (data: T | null) => void
   loading: boolean
   fn: E
 } {
@@ -20,7 +21,7 @@ export function useApi<T, E extends (...args: any[]) => Promise<T>>(
       setLoading(false)
     }
   }) as E
-  return { data, loading, fn }
+  return { data, setData, loading, fn }
 }
 
 export function useStreamingApi(

@@ -1,3 +1,6 @@
+import { python } from '@codemirror/lang-python'
+import { EditorView } from '@codemirror/view'
+import CodeMirror from '@uiw/react-codemirror'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
@@ -6,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Textarea } from '@/components/ui/textarea'
 import { useApi } from '@/hooks/use-api'
 import {
   getSchedules as apiGetSchedules,
@@ -25,6 +27,7 @@ export default function Schedules() {
   const navigate = useNavigate()
   const {
     data: schedules,
+    setData: setSchedules,
     loading: schedulesLoading,
     fn: getSchedules,
   } = useApi<Schedule[], typeof apiGetSchedules>(apiGetSchedules, true)
@@ -45,32 +48,16 @@ export default function Schedules() {
     getSchedules()
   }, [])
 
-  const handleEditClick = () => {
-    if (selectedSchedule) {
-      setEditingSchedule({ ...selectedSchedule })
-    }
+  const saveSchedule = (schedule: Schedule): void => {
+    updateSchedule(schedule).then((new_schedule) => {
+      setSchedules(
+        schedules?.map((s) => (s.id === new_schedule.id ? new_schedule : s)) ||
+          []
+      )
+    })
   }
 
-  const handleSaveClick = async () => {
-    if (editingSchedule) {
-      await updateSchedule(editingSchedule)
-      setEditingSchedule(null)
-      getSchedules()
-    }
-  }
-
-  const handleCancelClick = () => {
-    setEditingSchedule(null)
-  }
-
-  const formatInterval = (seconds: number) => {
-    if (seconds < 60) return `${seconds}s`
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`
-    return `${Math.floor(seconds / 86400)}d`
-  }
-
-  const formatNextRun = (dateString: Date | null) => {
+  const formatNextRun = (dateString: Date | null): string => {
     if (!dateString) return 'Not scheduled'
     return new Date(dateString).toLocaleString()
   }
@@ -104,11 +91,12 @@ export default function Schedules() {
                           : ''
                       }`}
                     >
-                      <div className="font-medium text-sm text-gray-900">
-                        Schedule {schedule.id.slice(0, 8)}...
+                      <div className="font-medium text-sm text-gray-700">
+                        {schedule.name ||
+                          `Schedule ${schedule.id.slice(0, 8)}...`}
                       </div>
                       <div className="text-xs text-gray-500 mt-1">
-                        Interval: {formatInterval(schedule.interval_seconds)}
+                        Crontab: {schedule.crontab}
                       </div>
                       <div className="text-xs text-gray-500">
                         Next: {formatNextRun(schedule.next_run_time)}
@@ -129,14 +117,38 @@ export default function Schedules() {
         <Card className="flex-1">
           <CardHeader>
             <CardTitle>
-              {selectedScheduleId
-                ? `Schedule - ${selectedScheduleId.slice(0, 8)}...`
+              {selectedSchedule
+                ? `${selectedSchedule.name || `Schedule ${selectedSchedule.id.slice(0, 8)}...`}`
                 : 'Select a schedule to view details'}
             </CardTitle>
             {selectedSchedule && !editingSchedule && (
-              <Button onClick={handleEditClick} className="w-fit">
-                Edit
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setEditingSchedule({ ...selectedSchedule })}
+                  className="w-fit"
+                >
+                  Edit
+                </Button>
+                <Button
+                  className="w-fit"
+                  onClick={() =>
+                    saveSchedule({ ...selectedSchedule, state: 'paused' })
+                  }
+                >
+                  Pause
+                </Button>
+                <Button
+                  className="w-fit"
+                  onClick={() =>
+                    saveSchedule({
+                      ...selectedSchedule,
+                      state: 'running',
+                    })
+                  }
+                >
+                  Resume
+                </Button>
+              </div>
             )}
           </CardHeader>
           <CardContent>
@@ -145,44 +157,67 @@ export default function Schedules() {
                 {editingSchedule ? (
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="interval">Interval (seconds)</Label>
+                      <Label htmlFor="name">Name</Label>
                       <Input
-                        id="interval"
-                        type="number"
-                        value={editingSchedule.interval_seconds}
+                        id="name"
+                        type="text"
+                        value={editingSchedule.name}
                         onChange={(e) =>
                           setEditingSchedule({
                             ...editingSchedule,
-                            interval_seconds: parseInt(e.target.value) || 0,
+                            name: e.target.value,
+                          })
+                        }
+                        placeholder="Schedule name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="crontab">Crontab</Label>
+                      <Input
+                        id="crontab"
+                        type="string"
+                        value={editingSchedule.crontab}
+                        onChange={(e) =>
+                          setEditingSchedule({
+                            ...editingSchedule,
+                            crontab: e.target.value,
                           })
                         }
                       />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="code">Python Code</Label>
-                      <Textarea
-                        id="code"
+                      <CodeMirror
                         value={editingSchedule.code}
-                        onChange={(e) =>
+                        onChange={(value) =>
                           setEditingSchedule({
                             ...editingSchedule,
-                            code: e.target.value,
+                            code: value,
                           })
                         }
-                        className="font-mono text-sm min-h-[400px]"
-                        placeholder="Enter Python code here..."
+                        extensions={[python(), EditorView.lineWrapping]}
+                        theme="dark"
+                        basicSetup={{
+                          lineNumbers: true,
+                          foldGutter: false,
+                          dropCursor: false,
+                          allowMultipleSelections: false,
+                        }}
+                        className="border border-input rounded-md"
                       />
                     </div>
                     <div className="flex gap-2">
                       <Button
-                        onClick={handleSaveClick}
+                        onClick={() => {
+                          saveSchedule(editingSchedule)
+                        }}
                         disabled={updateLoading}
                       >
                         {updateLoading ? 'Saving...' : 'Save'}
                       </Button>
                       <Button
                         variant="outline"
-                        onClick={handleCancelClick}
+                        onClick={() => setEditingSchedule(null)}
                         disabled={updateLoading}
                       >
                         Cancel
@@ -192,10 +227,15 @@ export default function Schedules() {
                 ) : (
                   <div className="space-y-4">
                     <div>
-                      <Label>Interval</Label>
+                      <Label>Name</Label>
                       <div className="text-sm text-gray-700 mt-1">
-                        {formatInterval(selectedSchedule.interval_seconds)} (
-                        {selectedSchedule.interval_seconds} seconds)
+                        {selectedSchedule.name || 'Unnamed'}
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Crontab</Label>
+                      <div className="text-sm text-gray-700 mt-1">
+                        {selectedSchedule.crontab}
                       </div>
                     </div>
                     <div>
@@ -206,9 +246,19 @@ export default function Schedules() {
                     </div>
                     <div>
                       <Label>Python Code</Label>
-                      <pre className="bg-gray-100 p-4 rounded-md text-sm font-mono overflow-x-auto mt-2 whitespace-pre-wrap text-gray-900">
-                        {selectedSchedule.code}
-                      </pre>
+                      <CodeMirror
+                        value={selectedSchedule.code}
+                        extensions={[python(), EditorView.lineWrapping]}
+                        theme="dark"
+                        editable={false}
+                        basicSetup={{
+                          lineNumbers: true,
+                          foldGutter: false,
+                          dropCursor: false,
+                          allowMultipleSelections: false,
+                        }}
+                        className="border border-gray-200 rounded-md mt-2"
+                      />
                     </div>
                   </div>
                 )}

@@ -66,7 +66,7 @@ export default function Threads() {
                           : ''
                       }`}
                     >
-                      <div className="font-medium text-sm text-gray-900">
+                      <div className="font-medium text-sm text-gray-600">
                         Thread {thread.id.slice(0, 8)}...
                       </div>
                       <div className="text-xs text-gray-500 mt-1">

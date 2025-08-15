@@ -49,9 +49,11 @@ export type ToolContent = {
 export type Schedule = {
   id: string
   user_id: string
+  name: string
   code: string
-  interval_seconds: number
+  crontab: string
   next_run_time: Date | null
+  state: string
 }
 
 export function parseToolContent(content: string): ToolContent[] {
