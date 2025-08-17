@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from contextlib import contextmanager
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from google.oauth2.credentials import Credentials
 from langchain_core.runnables.config import RunnableConfig
@@ -56,7 +56,9 @@ class AsyncBaseTool(BaseTool):
         return config["configurable"]["user_id"]
 
     def _run(self, *args, **kwargs):
-        return asyncio.get_event_loop().run_until_complete(self.arun(*args, **kwargs))
+        return asyncio.get_event_loop().run_until_complete(
+            self._arun(*args, **kwargs, config=RunnableConfig())
+        )
 
     def _create_credentials(
         self, user: User, scope: str, integration_key: str

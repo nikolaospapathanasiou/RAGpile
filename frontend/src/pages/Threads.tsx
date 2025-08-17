@@ -46,8 +46,8 @@ export default function Threads() {
           <CardHeader>
             <CardTitle>All Threads</CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="max-h-full overflow-y-auto">
+          <CardContent className="p-0 overflow-auto">
+            <div className="max-h-full">
               {threadsLoading ? (
                 <div className="space-y-2 p-4">
                   {[...Array(5)].map((_, i) => (

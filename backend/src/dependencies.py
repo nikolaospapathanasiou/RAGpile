@@ -102,6 +102,7 @@ def new_scheduler() -> BaseScheduler:
             )
         }
         local.bot = Bot(token=get_telegram_application_token())
+        local.llm = init_chat_model("gpt-4.1")
 
     executors = {"default": ThreadPoolExecutor(1, pool_kwargs={"initializer": _init})}
     job_defaults = {"max_instances": 1, "coalesce": True, "misfire_grace_time": None}

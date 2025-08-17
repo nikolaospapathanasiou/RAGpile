@@ -3,6 +3,7 @@ import threading
 from dataclasses import dataclass
 
 from apscheduler.triggers.cron import CronTrigger
+from langchain.chat_models.base import BaseChatModel
 from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel
 from telegram import Bot
@@ -35,18 +36,28 @@ def run_job(code: str, user_id: str):
 
     user = loop.run_until_complete(tools["scheduler_create"].get_user({}))
     bot: Bot = local.bot
+    llm: BaseChatModel = local.llm
 
-    def send_message(text: str):
+    def send_message(text: str) -> None:
         loop.run_until_complete(
             bot.send_message(
                 chat_id=user.integrations["telegram"]["effective_chat_id"], text=text
             )
         )
 
+    def invoke_llm(text: str) -> str:
+        message = llm.invoke(text)
+        return str(message.content)
+
     exec(
         code,
         None,
-        {"tools": local.tools, "user_id": user_id, "send_message": send_message},
+        {
+            "tools": local.tools,
+            "user_id": user_id,
+            "send_message": send_message,
+            "invoke_llm": invoke_llm,
+        },
     )
 
 
@@ -60,13 +71,20 @@ class SchedulerCreateTool(AsyncBaseTool):
         The job has access to all the tools that are available to you.
         They are available in a python dict in the global scope, so you can access it like:
         `tools["tool_name"]`
+        The input is a dict with the keys named as described in the tools.
         For example, if you want to use the tool named "google_search", you can do:
-        `result = tools["google_search"].run("What are the latest news?")`
+        `result = tools["google_search"].run({"query": "What are the latest news?"})`
+        If you want to call a tool without any input, you still need to pass in an empty dict.
         The results are python dataclasses or a list of dataclasses, the attributes can be accessed with the dot notation, for example:
         `result.title`
         `result[0].link`
+        If you want to invoke an llm in order to parse some data and create a message for the user you can do:
+        `result = invoke_llm("Can you summarize the latest news?" + str(result))`.
+        Always use invoke_llm if you are requested to process data and create a message for the user.
+        DO NOT use non existing tools.
+        DO NOT use result['items'] for the result of a tool, the return value is either a list or a dataclass.
         You can also send message to the user by calling `send_message("message")`
-        when you plan to use this, always ask first if this is what the user wants.
+        when you plan to use this, always ask first if this is what the user wants by showing the code and waiting for a confirmation.
     """
     args_schema: type = SchedulerCreateInput
 

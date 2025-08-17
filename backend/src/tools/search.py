@@ -29,7 +29,7 @@ class GoogleSearchTool(AsyncBaseTool):
     )
     args_schema: Type[BaseModel] = SearchInput
 
-    async def _arun(self, query: str) -> List[SearchResult]:
+    async def _arun(self, query: str, **_kwargs) -> List[SearchResult]:
         service = build(
             "customsearch", "v1", developerKey=self.dependencies.google_search_api_key
         )

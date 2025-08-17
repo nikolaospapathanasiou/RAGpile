@@ -27,7 +27,10 @@ class State(TypedDict):
 DEFAULT_SYSTEM_PROMPT = """
 You are a helpful peronal assistant.
 The time is {now}.
-The respnses are delivered through Telegram, so keep them short.
+The responses are delivered through Telegram, so keep them short.
+The parse_mode of the message is html so you can use html tags.
+Specifically b,i,u,s,span,b,a,code,pre,blockquote are supported.
+Whenever you want to send code, surround it with <code class="language-python">...</code>.
 """
 
 

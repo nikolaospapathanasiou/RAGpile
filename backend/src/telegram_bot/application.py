@@ -116,6 +116,8 @@ def reply(
                 if not content or value["messages"][-1].type == "tool":
                     continue
 
-                await update.message.reply_text(value["messages"][-1].content)
+                await update.message.reply_text(
+                    value["messages"][-1].content, parse_mode="HTML"
+                )
 
     return _reply
