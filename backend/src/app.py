@@ -13,13 +13,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from dependencies import (
     CHECKPOINTER,
     ENGINE,
+    MESSAGE_QUEUE,
     TELEGRAM_APPLICATION_TOKEN,
     create_engine,
     create_session_factory,
     get_scheduler,
     get_session,
     new_checkpointer,
-    new_graph,
+    new_agent,
     new_graphiti,
     new_tools,
 )
@@ -42,14 +43,17 @@ def run_telegram_application(stop_event: threading.Event):
         session_factory = asynccontextmanager(create_session_factory(create_engine()))
         checkpointer = new_checkpointer()
         await checkpointer.connect()
-        application = new_telegram_application(
+        telegram_application = new_telegram_application(
             TELEGRAM_APPLICATION_TOKEN,
             session_factory,
-            new_graph(
+            new_agent(
                 checkpointer=checkpointer,
                 tools=new_tools(graphiti=graphiti, session_factory=session_factory),
+                session_factory=session_factory,
             ),
+            MESSAGE_QUEUE,
         )
+        application = telegram_application.application
 
         await application.initialize()
         assert application.updater is not None
@@ -57,8 +61,7 @@ def run_telegram_application(stop_event: threading.Event):
         await application.start()
 
         while not stop_event.is_set():
-            await asyncio.sleep(1)
-
+            await telegram_application.send_pending_messages()
         await application.updater.stop()
         await application.stop()
         await application.shutdown()
@@ -89,6 +92,7 @@ async def lifespan(_: FastAPI):
     scheduler.start()
     yield
     logger.info("Shutting down telegram application")
+    await MESSAGE_QUEUE.shutdown()
     stop_event.set()
     telegram_thread.join()
     logger.info("Shutting down scheduler")

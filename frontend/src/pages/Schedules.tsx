@@ -91,7 +91,7 @@ export default function Schedules() {
                           : ''
                       }`}
                     >
-                      <div className="font-medium text-sm text-gray-700">
+                      <div className="font-medium text-sm text-gray-600">
                         {schedule.name ||
                           `Schedule ${schedule.id.slice(0, 8)}...`}
                       </div>

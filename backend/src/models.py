@@ -73,7 +73,7 @@ class Schedule(Base):
     __tablename__ = "schedules"
 
     user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), nullable=False)
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String)
 
     __table_args__ = (
         PrimaryKeyConstraint("user_id", "id"),

@@ -24,9 +24,11 @@ from sqlalchemy.ext.asyncio import (
 )
 from telegram import Bot
 
-from agent.graph import create_graph, create_tools
+from agent.agent import Agent
+from agent.graph import create_agent, create_tools
 from agent.postgres_saver import LazyAsyncPostgresSaver
 from jwt_token import TokenManager, get_current_user_factory
+from message_queue import MessageQueue
 from tools.scheduler import local
 
 
@@ -157,14 +159,16 @@ def new_tools(
     )
 
 
-def new_graph(
+def new_agent(
     tools: list[BaseTool],
     checkpointer: LazyAsyncPostgresSaver,
-) -> CompiledStateGraph:
-    return create_graph(
+    session_factory: Callable[[], AsyncContextManager[AsyncSession]],
+) -> Agent:
+    return create_agent(
         tools=tools,
         checkpointer=checkpointer,
         llm=init_chat_model("gpt-4.1"),
+        session_factory=session_factory,
     )
 
 
@@ -177,6 +181,7 @@ def get_telegram_application_token() -> str:
     return TELEGRAM_APPLICATION_TOKEN
 
 
+MESSAGE_QUEUE = MessageQueue()
 ######## Graphiti ########
 
 

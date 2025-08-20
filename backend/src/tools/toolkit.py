@@ -6,6 +6,7 @@ from graphiti_core import Graphiti
 from langchain_core.tools import BaseTool
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from tools.browser import BrowserTool
 from tools.calendar import CalendarCreateEventTool, CalendarListEventsTool
 from tools.email import GmailReadUnreadTool
 from tools.graphiti import GraphitiAddEpisode
@@ -44,5 +45,7 @@ class Toolkit:
                 SchedulerCreateTool().with_dependencies(self.dependencies),
                 # Graphiti tools
                 GraphitiAddEpisode().with_dependencies(self.dependencies),
+                # Browser tools
+                BrowserTool().with_dependencies(self.dependencies),
             ],
         )

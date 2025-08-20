@@ -17,6 +17,7 @@ from langgraph.prebuilt import ToolNode
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing_extensions import TypedDict
 
+from agent.agent import Agent
 from tools.toolkit import ToolDependencies, Toolkit
 
 
@@ -29,18 +30,21 @@ You are a helpful peronal assistant.
 The time is {now}.
 The responses are delivered through Telegram, so keep them short.
 The parse_mode of the message is html so you can use html tags.
-Specifically b,i,u,s,span,b,a,code,pre,blockquote are supported.
+Specifically only b,i,u,s,a,code,pre,blockquote are supported.
+DO NOT use ul, li or span they are not supported.
 Whenever you want to send code, surround it with <code class="language-python">...</code>.
 """
+
+
+def get_system_message() -> SystemMessage:
+    return SystemMessage(DEFAULT_SYSTEM_PROMPT.format(now=datetime.now().isoformat()))
 
 
 def completion(
     llm: Runnable[LanguageModelInput, BaseMessage],
 ) -> Callable[[State], State]:
     def _completion(state: State) -> State:
-        system_prompt = SystemMessage(
-            content=DEFAULT_SYSTEM_PROMPT.format(now=datetime.now().isoformat()),
-        )
+        system_prompt = get_system_message()
         response = llm.invoke([system_prompt] + state["messages"])
         return {"messages": [response]}
 
@@ -78,11 +82,12 @@ def create_tools(
     return toolkit.get_tools()
 
 
-def create_graph(
+def create_agent(
     checkpointer: AsyncPostgresSaver,
     llm: BaseChatModel,
     tools: list[BaseTool],
-) -> CompiledStateGraph:
+    session_factory: Callable[[], AsyncContextManager[AsyncSession]],
+) -> Agent:
 
     llm_with_tools = llm.bind_tools(tools)
 
@@ -94,5 +99,5 @@ def create_graph(
     graph_builder.add_edge(START, "completion")
     graph_builder.add_conditional_edges("completion", should_continue)
     graph_builder.add_edge("tools", "completion")
-
-    return graph_builder.compile(checkpointer)
+    graph = graph_builder.compile(checkpointer)
+    return Agent(graph, session_factory)
