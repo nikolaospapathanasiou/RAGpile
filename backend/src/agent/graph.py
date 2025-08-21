@@ -5,7 +5,7 @@ from apscheduler.schedulers.base import BaseScheduler
 from graphiti_core import Graphiti
 from langchain_core.language_models.base import LanguageModelInput
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import BaseMessage
+from langchain_core.messages import AIMessage, BaseMessage
 from langchain_core.messages.system import SystemMessage
 from langchain_core.runnables import Runnable, RunnableLambda
 from langchain_core.tools.base import BaseTool
@@ -18,11 +18,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing_extensions import TypedDict
 
 from agent.agent import Agent
+from message_queue import MessageQueue
 from tools.toolkit import ToolDependencies, Toolkit
 
 
 class State(TypedDict):
-    messages: Annotated[list, add_messages]
+    messages: Annotated[list[BaseMessage], add_messages]
 
 
 DEFAULT_SYSTEM_PROMPT = """
@@ -31,8 +32,9 @@ The time is {now}.
 The responses are delivered through Telegram, so keep them short.
 The parse_mode of the message is html so you can use html tags.
 Specifically only b,i,u,s,a,code,pre,blockquote are supported.
-DO NOT use ul, li or span they are not supported.
+DO NOT use ul, li, br or span they are not supported.
 Whenever you want to send code, surround it with <code class="language-python">...</code>.
+In the background, there are scheduled jobs running that may send messages in the thread.
 """
 
 
@@ -44,6 +46,9 @@ def completion(
     llm: Runnable[LanguageModelInput, BaseMessage],
 ) -> Callable[[State], State]:
     def _completion(state: State) -> State:
+        last_message = state["messages"][-1]
+        if last_message.type == "ai":
+            return state
         system_prompt = get_system_message()
         response = llm.invoke([system_prompt] + state["messages"])
         return {"messages": [response]}
@@ -54,7 +59,7 @@ def completion(
 def should_continue(state: State) -> str:
     messages = state["messages"]
     last_message = messages[-1]
-    if last_message.tool_calls:
+    if isinstance(last_message, AIMessage) and last_message.tool_calls:
         return "tools"
     return END
 
@@ -87,6 +92,7 @@ def create_agent(
     llm: BaseChatModel,
     tools: list[BaseTool],
     session_factory: Callable[[], AsyncContextManager[AsyncSession]],
+    queue: MessageQueue,
 ) -> Agent:
 
     llm_with_tools = llm.bind_tools(tools)
@@ -100,4 +106,4 @@ def create_agent(
     graph_builder.add_conditional_edges("completion", should_continue)
     graph_builder.add_edge("tools", "completion")
     graph = graph_builder.compile(checkpointer)
-    return Agent(graph, session_factory)
+    return Agent(graph, session_factory, queue)

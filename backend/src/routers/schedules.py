@@ -37,7 +37,7 @@ class ResponseSchedule(BaseModel):
             id=job.id,
             user_id=user_id,
             name=job.name,
-            code=job.args[0],
+            code=job.kwargs["code"],
             crontab=get_crontab(job.trigger),
             next_run_time=job.next_run_time,
             state="paused" if job.next_run_time is None else "running",
@@ -80,10 +80,10 @@ async def update_schedule(
     if job is None:
         await session.delete(db_schedule)
         raise HTTPException(status_code=404, detail="Schedule not found")
-    new_args = (in_schedule.code, current_user.id)
+    new_kwargs = {**job.kwargs, "code": in_schedule.code}
     new_trigger = CronTrigger.from_crontab(in_schedule.crontab)
     new_job: Job = scheduler.modify_job(
-        schedule_id, name=in_schedule.name, args=new_args, trigger=new_trigger
+        schedule_id, name=in_schedule.name, kwargs=new_kwargs, trigger=new_trigger
     )
 
     if in_schedule.state == "running" and new_job.next_run_time is None:

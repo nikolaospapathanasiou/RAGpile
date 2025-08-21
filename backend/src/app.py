@@ -50,6 +50,7 @@ def run_telegram_application(stop_event: threading.Event):
                 checkpointer=checkpointer,
                 tools=new_tools(graphiti=graphiti, session_factory=session_factory),
                 session_factory=session_factory,
+                queue=MESSAGE_QUEUE,
             ),
             MESSAGE_QUEUE,
         )

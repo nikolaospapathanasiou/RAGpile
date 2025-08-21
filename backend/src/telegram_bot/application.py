@@ -1,16 +1,14 @@
-from datetime import datetime, timezone
 from asyncio import QueueShutDown
 from typing import AsyncContextManager, Callable, Coroutine, cast
-from uuid import uuid4
 
-from langgraph.graph.state import CompiledStateGraph
+from langchain_core.messages import HumanMessage
 from sqlalchemy.ext.asyncio import AsyncSession
 from telegram import Bot, Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler
 
 from agent.agent import Agent
 from message_queue import MessageQueue, MessageWithUserId
-from models import Thread, User
+from models import User
 
 
 class TelegramApplication(Application):
@@ -30,13 +28,15 @@ class TelegramApplication(Application):
     async def send_pending_messages(self) -> None:
         while True:
             try:
-                message_with_chat = await self.queue.get(self.QUEUE_HANDLE)
+                message_with_user_id = await self.queue.get(self.QUEUE_HANDLE)
             except QueueShutDown:
                 break
-            if message_with_chat.message.type == "tool":
+            if message_with_user_id.message.type == "tool":
+                continue
+            if not message_with_user_id.message.content:
                 continue
             async with self.session_factory() as session:
-                user = cast(User, await session.get(User, message_with_chat.user_id))
+                user = cast(User, await session.get(User, message_with_user_id.user_id))
                 if not user:
                     raise ValueError(
                         "User could not be found when processing a message in queue. That should not have happened."
@@ -44,7 +44,7 @@ class TelegramApplication(Application):
                 chat_id = user.integrations["telegram"]["effective_chat_id"]
             await cast(Bot, self.application.bot).send_message(
                 chat_id,
-                str(message_with_chat.message.content),
+                str(message_with_user_id.message.content),
                 parse_mode="HTML",
             )
 
@@ -58,7 +58,7 @@ def new_telegram_application(
     application = Application.builder().token(token).build()
     application.add_handler(CommandHandler("start", start(session_factory)))
     application.add_handler(CommandHandler("clear", clear(session_factory)))
-    application.add_handler(MessageHandler(None, reply(agent, session_factory, queue)))
+    application.add_handler(MessageHandler(None, reply(agent, session_factory)))
     return TelegramApplication(queue, application, session_factory)
 
 
@@ -114,7 +114,6 @@ def clear(
 def reply(
     agent: Agent,
     session_factory: Callable[[], AsyncContextManager[AsyncSession]],
-    queue: MessageQueue,
 ) -> Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[None, None, None]]:
     async def _reply(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         assert update.message
@@ -132,24 +131,8 @@ def reply(
             if not user:
                 return
             session.expunge(user)
-        thread_id = await agent.get_current_thread_id(user)
-        async for event in agent.graph.astream(
-            {
-                "messages": [{"role": "user", "content": update.message.text}],
-            },
-            {"configurable": {"thread_id": thread_id, "user_id": user.id}},
-        ):
-            for value in event.values():
-                content = value["messages"][-1].content
-
-                if not content or value["messages"][-1].type == "tool":
-                    continue
-
-                await queue.put(
-                    MessageWithUserId(
-                        user_id=user.id,
-                        message=value["messages"][-1],
-                    )
-                )
+        if not update.message.text:
+            return
+        await agent.send_message([HumanMessage(content=update.message.text)], user)
 
     return _reply

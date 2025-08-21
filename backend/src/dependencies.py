@@ -94,15 +94,16 @@ def new_scheduler() -> BaseScheduler:
 
     def _init():
         asyncio.set_event_loop(asyncio.new_event_loop())
-        local.tools = {
-            tool.name: tool
-            for tool in new_tools(
-                graphiti=new_graphiti(),
-                session_factory=asynccontextmanager(
-                    create_session_factory(create_engine())
-                ),
-            )
-        }
+        session_factory = asynccontextmanager(create_session_factory(create_engine()))
+        tools = new_tools(graphiti=new_graphiti(), session_factory=session_factory)
+
+        local.tools = {tool.name: tool for tool in tools}
+        local.agent = new_agent(
+            tools=tools,
+            session_factory=session_factory,
+            queue=MESSAGE_QUEUE,
+            checkpointer=CHECKPOINTER,
+        )
         local.bot = Bot(token=get_telegram_application_token())
         local.llm = init_chat_model("gpt-4.1")
 
@@ -163,12 +164,14 @@ def new_agent(
     tools: list[BaseTool],
     checkpointer: LazyAsyncPostgresSaver,
     session_factory: Callable[[], AsyncContextManager[AsyncSession]],
+    queue: MessageQueue,
 ) -> Agent:
     return create_agent(
         tools=tools,
         checkpointer=checkpointer,
         llm=init_chat_model("gpt-4.1"),
         session_factory=session_factory,
+        queue=queue,
     )
 
 

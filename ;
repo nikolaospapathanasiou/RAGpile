@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from apscheduler.triggers.cron import CronTrigger
 from langchain.chat_models.base import BaseChatModel
-from langchain_core.messages import AIMessage, SystemMessage
+from langchain_core.messages import AIMessage
 from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel
 
@@ -28,7 +28,7 @@ class SchedulerCreate:
 local = threading.local()
 
 
-def run_job(code: str, user_id: str, name: str):
+def run_job(code: str, user_id: str):
     loop = asyncio.get_event_loop()
 
     tools: dict[str, AsyncBaseTool] = local.tools
@@ -40,18 +40,7 @@ def run_job(code: str, user_id: str, name: str):
     llm: BaseChatModel = local.llm
 
     def send_message(text: str) -> None:
-        async def _send_message(text: str) -> None:
-            await agent.send_message(
-                [
-                    SystemMessage(
-                        content=f"The following message is message sent form job {name}"
-                    ),
-                    AIMessage(content=text),
-                ],
-                user,
-            )
-
-        loop.run_until_complete(_send_message(text))
+        loop.run_until_complete(agent.send_message(AIMessage(content=text), user))
 
     def invoke_llm(text: str) -> str:
         message = llm.invoke(text)
@@ -103,7 +92,7 @@ class SchedulerCreateTool(AsyncBaseTool):
             name=name,
             func=run_job,
             trigger=CronTrigger.from_crontab(crontab),
-            kargs={"code": code, "user_id": self._get_user_id(config), "name": name},
+            args=[code, self._get_user_id(config)],
         )
         async with self.dependencies.session_factory() as session:
             schedule = Schedule(user_id=self._get_user_id(config), id=job.id)
