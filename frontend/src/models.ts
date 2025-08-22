@@ -37,6 +37,13 @@ export type Thread = {
         name: string
         args: Map<string, string>
       }[]
+      usage_metadata?: {
+        input_tokens: number
+        output_tokens: number
+      }
+      response_metadata: {
+        model_name: string
+      }
     }[]
   }
 }

@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { costForModel } from '@/constants'
 import { useApi } from '@/hooks/use-api'
 import {
   getThread as apiGetThread,
@@ -34,6 +35,31 @@ export default function Threads() {
   useEffect(() => {
     getThreads()
   }, [])
+
+  const costs = useMemo(() => {
+    if (!selectedThread) {
+      return []
+    }
+    const costs = selectedThread.channel_values.messages.map((message) => {
+      if (!message.response_metadata.model_name) {
+        return 0
+      }
+      const modelCost = costForModel(message.response_metadata.model_name)
+
+      console.log(modelCost, message.response_metadata.model_name)
+      if (modelCost) {
+        return (
+          ((message.usage_metadata?.input_tokens || 0) * modelCost.in) /
+            1_000_000 +
+          ((message.usage_metadata?.output_tokens || 0) * modelCost.out) /
+            1_000_000
+        )
+      }
+      return 0
+    })
+    console.log(costs)
+    return costs
+  }, [selectedThread])
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString()
@@ -89,7 +115,10 @@ export default function Threads() {
           <CardHeader>
             <CardTitle>
               {selectedThreadId
-                ? `Messages - Thread ${selectedThreadId.slice(0, 8)}...`
+                ? `Messages - Thread ${selectedThreadId.slice(0, 8)}... - Total Cost $${costs.reduce(
+                    (total, cost) => total + cost,
+                    0
+                  ).toFixed(4)}`
                 : 'Select a thread to view messages'}
             </CardTitle>
           </CardHeader>
@@ -124,6 +153,11 @@ export default function Threads() {
                             ? 'You'
                             : 'Assistant' + ' (' + message.type + ')'}
                         </span>
+                        {costs[index] > 0 && (
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                            ${costs[index].toFixed(4)}
+                          </span>
+                        )}
                       </div>
                       <div className="text-sm text-gray-900 whitespace-pre-wrap">
                         {message.type !== 'tool' && message.content}
