@@ -92,12 +92,17 @@ def new_scheduler() -> BaseScheduler:
     )
     jobstores = {"default": SQLAlchemyJobStore(url=url)}
 
+    job_defaults = {"max_instances": 1, "coalesce": True, "misfire_grace_time": None}
+    scheduler = BackgroundScheduler(jobstores=jobstores, job_defaults=job_defaults)
+
     def _init():
         asyncio.set_event_loop(asyncio.new_event_loop())
         session_factory = asynccontextmanager(create_session_factory(create_engine()))
         tools = new_tools(graphiti=new_graphiti(), session_factory=session_factory)
 
         local.tools = {tool.name: tool for tool in tools}
+        local.scheduler = scheduler
+        local.session_factory = session_factory
         local.agent = new_agent(
             tools=tools,
             session_factory=session_factory,
@@ -107,11 +112,10 @@ def new_scheduler() -> BaseScheduler:
         local.bot = Bot(token=get_telegram_application_token())
         local.llm = init_chat_model("gpt-4.1")
 
-    executors = {"default": ThreadPoolExecutor(1, pool_kwargs={"initializer": _init})}
-    job_defaults = {"max_instances": 1, "coalesce": True, "misfire_grace_time": None}
-    return BackgroundScheduler(
-        jobstores=jobstores, executors=executors, job_defaults=job_defaults
+    scheduler.add_executor(
+        ThreadPoolExecutor(1, pool_kwargs={"initializer": _init}), alias="default"
     )
+    return scheduler
 
 
 SCHEDULER = new_scheduler()

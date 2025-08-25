@@ -69,8 +69,8 @@ export default function Schedules() {
           <CardHeader>
             <CardTitle>All Schedules</CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="max-h-full overflow-y-auto">
+          <CardContent className="p-0 overflow-y-auto">
+            <div className="max-h-full ">
               {schedulesLoading ? (
                 <div className="space-y-2 p-4">
                   {[...Array(5)].map((_, i) => (
