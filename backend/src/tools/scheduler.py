@@ -8,7 +8,7 @@ from apscheduler.job import Job
 from apscheduler.schedulers.base import BaseScheduler
 from apscheduler.triggers.cron import CronTrigger
 from langchain.chat_models.base import BaseChatModel
-from langchain_core.messages import AIMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -72,7 +72,15 @@ def run_job(code: str, user_id: str, job_id: str, state: dict[str, Any] = {}) ->
         loop.run_until_complete(_send_message(text))
 
     def invoke_llm(text: str) -> str:
-        message = llm.invoke(text)
+        system_message = SystemMessage(
+            content="""
+            You are an assistant, this is a message that is requested in a cron like job.
+            Try to keep them short, because those messages will probably be sent to the user
+            through telegram.
+            """
+        )
+        user_messgae = HumanMessage(content=text)
+        message = llm.invoke([system_message, user_messgae])
         return str(message.content)
 
     exec(

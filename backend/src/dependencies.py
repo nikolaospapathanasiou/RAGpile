@@ -9,6 +9,7 @@ from apscheduler.schedulers.background import (  # type: ignore
     BackgroundScheduler,
     BaseScheduler,
 )
+from asyncpraw import Reddit
 from graphiti_core import Graphiti
 from langchain.chat_models import init_chat_model
 from langchain.globals import set_debug
@@ -161,6 +162,13 @@ def new_tools(
         google_search_api_key=os.environ["GOOGLE_SEARCH_API_KEY"],
         google_search_engine_id=os.environ["GOOGLE_SEARCH_ENGINE_ID"],
         scheduler=SCHEDULER,
+        reddit_client=Reddit(
+            client_id=os.environ["REDDIT_CLIENT_ID"],
+            client_secret=os.environ["REDDIT_CLIENT_SECRET"],
+            user_agent="RAGpile",
+            username=os.environ["REDDIT_USERNAME"],
+            password=os.environ["REDDIT_PASSWORD"],
+        ),
     )
 
 

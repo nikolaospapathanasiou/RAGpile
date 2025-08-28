@@ -1,5 +1,6 @@
 from asyncio import QueueShutDown
-from typing import AsyncContextManager, Callable, Coroutine, cast
+from dataclasses import dataclass
+from typing import AsyncContextManager, Callable, Coroutine, Generator, cast
 
 from langchain_core.messages import HumanMessage
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,8 +8,76 @@ from telegram import Bot, Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler
 
 from agent.agent import Agent
-from message_queue import MessageQueue, MessageWithUserId
+from message_queue import MessageQueue
 from models import User
+
+
+def split_message_to_chunks(message: str, chunk_size: int = 4096) -> Generator[str]:
+    chunk_index = 0
+    content = message
+    chunk = content[0:chunk_size]
+    while chunk:
+        yield chunk
+        chunk_index += 1
+        chunk = content[chunk_index * chunk_size : (chunk_index + 1) * chunk_size]
+
+
+def remove_unclosed_tags(message: str) -> str:
+    @dataclass
+    class Tag:
+        start: int
+        end: int
+        name: str
+        name_found: bool
+
+    def remove_tag(m: str, tag: Tag) -> str:
+        return m[: tag.start] + m[tag.end + 1 :]
+
+    tags: list[Tag] = []
+    for i, c in enumerate(message):
+        if c == "<":
+            tags.append(Tag(start=i, end=-1, name="", name_found=False))
+            continue
+
+        if len(tags) == 0:
+            continue
+
+        if c == ">":
+            tags[-1].end = i
+            tags[-1].name_found = True
+            continue
+
+        if tags[-1].name_found:
+            continue
+
+        if c == " ":
+            tags[-1].name_found = True
+            continue
+
+        tags[-1].name += c
+
+    open_tags: list[Tag] = []
+    for tag in tags:
+        if tag.name[0] == "/":
+            if len(open_tags) == 0:
+                message = remove_tag(message, tag)
+                continue
+
+            if len(open_tags) >= 1 and open_tags[-1].name == tag.name[1:]:
+                open_tags.pop()
+                continue
+
+            if len(open_tags) >= 2 and open_tags[-2].name == tag.name[1:]:
+                unclosed_tag = open_tags.pop()
+                message = remove_tag(message, unclosed_tag)
+                open_tags.pop()
+                continue
+            message = remove_tag(message, tag)
+        else:
+            open_tags.append(tag)
+    for tag in open_tags:
+        message = remove_tag(message, tag)
+    return message
 
 
 class TelegramApplication(Application):
@@ -42,11 +111,14 @@ class TelegramApplication(Application):
                         "User could not be found when processing a message in queue. That should not have happened."
                     )
                 chat_id = user.integrations["telegram"]["effective_chat_id"]
-            await cast(Bot, self.application.bot).send_message(
-                chat_id,
-                str(message_with_user_id.message.content),
-                parse_mode="HTML",
-            )
+            for chunk in split_message_to_chunks(
+                str(message_with_user_id.message.content)
+            ):
+                await cast(Bot, self.application.bot).send_message(
+                    chat_id,
+                    chunk,
+                    parse_mode="HTML",
+                )
 
 
 def new_telegram_application(

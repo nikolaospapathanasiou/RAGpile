@@ -21,14 +21,15 @@ neo4j = "*"
 google-api-python-client = "*"
 beautifulsoup4 = "*"
 graphiti-core = "*"
+asyncpraw = "*"
 
 [dev-packages]
 pylint = "*"
 debugpy = "*"
 black = "==25.1.0"
-isort = "==6.0.0"
 ipython = "*"
 pytest = "*"
+isort = "*"
 
 [requires]
 python_version = "3.13"

@@ -115,10 +115,9 @@ export default function Threads() {
           <CardHeader>
             <CardTitle>
               {selectedThreadId
-                ? `Messages - Thread ${selectedThreadId.slice(0, 8)}... - Total Cost $${costs.reduce(
-                    (total, cost) => total + cost,
-                    0
-                  ).toFixed(4)}`
+                ? `Messages - Thread ${selectedThreadId.slice(0, 8)}... - Total Cost $${costs
+                    .reduce((total, cost) => total + cost, 0)
+                    .toFixed(4)}`
                 : 'Select a thread to view messages'}
             </CardTitle>
           </CardHeader>
@@ -159,7 +158,7 @@ export default function Threads() {
                           </span>
                         )}
                       </div>
-                      <div className="text-sm text-gray-900 whitespace-pre-wrap">
+                      <div className="text-sm text-gray-900 whitespace-pre-wrap break-all overflow-hidden">
                         {message.type !== 'tool' && message.content}
                         {message.tool_calls &&
                           message.tool_calls.map((tool_call) => (

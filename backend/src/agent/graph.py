@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Annotated, AsyncContextManager, Callable
 
 from apscheduler.schedulers.base import BaseScheduler
+from asyncpraw import Reddit
 from graphiti_core import Graphiti
 from langchain_core.language_models.base import LanguageModelInput
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -72,6 +73,7 @@ def create_tools(
     google_search_api_key: str,
     google_search_engine_id: str,
     scheduler: BaseScheduler,
+    reddit_client: Reddit,
 ) -> list[BaseTool]:
     dependencies = ToolDependencies(
         session_factory=session_factory,
@@ -81,6 +83,7 @@ def create_tools(
         google_search_engine_id=google_search_engine_id,
         scheduler=scheduler,
         graphiti=graphiti,
+        reddit_client=reddit_client,
     )
 
     toolkit = Toolkit(dependencies)

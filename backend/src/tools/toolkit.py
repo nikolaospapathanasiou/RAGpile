@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import AsyncContextManager, Callable, List, cast
 
 from apscheduler.schedulers.base import BaseScheduler
+from asyncpraw import Reddit
 from graphiti_core import Graphiti
 from langchain_core.tools import BaseTool
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,6 +11,7 @@ from tools.browser import BrowserTool
 from tools.calendar import CalendarCreateEventTool, CalendarListEventsTool
 from tools.email import GmailReadUnreadTool
 from tools.graphiti import GraphitiAddEpisode
+from tools.reddit import RedditSearchTool
 from tools.scheduler import SchedulerCreateTool
 from tools.search import GoogleSearchTool
 
@@ -23,6 +25,7 @@ class ToolDependencies:
     google_search_engine_id: str
     scheduler: BaseScheduler
     graphiti: Graphiti
+    reddit_client: Reddit
 
 
 class Toolkit:
@@ -47,5 +50,7 @@ class Toolkit:
                 GraphitiAddEpisode().with_dependencies(self.dependencies),
                 # Browser tools
                 BrowserTool().with_dependencies(self.dependencies),
+                # Reddit tools
+                RedditSearchTool().with_dependencies(self.dependencies),
             ],
         )
