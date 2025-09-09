@@ -1,0 +1,9 @@
+- maps tool
+- add the option to send current location
+- reddit tool split results and comments in 2 subtools
+- add time filter to reddit tool
+- add time filter to google search
+- persistent queue + dlq + retries.
+- persistent queue when sending messages to telegram. 
+- Error handling for unknown html tag when sending messages to telegram
+- persistent queue for incoming messages

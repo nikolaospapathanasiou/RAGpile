@@ -27,7 +27,7 @@ class RedditSearchTool(AsyncBaseTool):
     async def _arun(self, query: str, **kwargs) -> list[RedditSearchResult]:
         subreddit = await self.dependencies.reddit_client.subreddit("all", fetch=False)
         results: list[RedditSearchResult] = []
-        async for submission in subreddit.search(query):
+        async for submission in subreddit.search(query, limit=10):
             result = RedditSearchResult(
                 title=submission.title,
                 selftext=submission.selftext,
