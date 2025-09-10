@@ -6,6 +6,7 @@ from langchain_core.messages import HumanMessage
 from sqlalchemy.ext.asyncio import AsyncSession
 from telegram import Bot, Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler
+from telegram.ext.filters import LOCATION
 
 from agent.agent import Agent
 from message_queue import MessageQueue
@@ -130,6 +131,7 @@ def new_telegram_application(
     application = Application.builder().token(token).build()
     application.add_handler(CommandHandler("start", start(session_factory)))
     application.add_handler(CommandHandler("clear", clear(session_factory)))
+    application.add_handler(MessageHandler(LOCATION, set_location(session_factory)))
     application.add_handler(MessageHandler(None, reply(agent, session_factory)))
     return TelegramApplication(queue, application, session_factory)
 
@@ -208,3 +210,34 @@ def reply(
         await agent.send_message([HumanMessage(content=update.message.text)], user)
 
     return _reply
+
+
+def set_location(
+    session_factory: Callable[[], AsyncContextManager[AsyncSession]],
+) -> Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[None, None, None]]:
+    async def _set_location(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+        assert update.effective_message
+        assert update.effective_message.location
+        assert update.effective_message.from_user
+        async with session_factory() as session:
+            user = cast(
+                User,
+                await session.scalar(
+                    User.select_user_from_telegram_id(
+                        update.effective_message.from_user.id
+                    )
+                ),
+            )
+            if not user:
+                return
+            user.integrations["telegram"]["latitude"] = str(
+                update.effective_message.location.latitude
+            )
+            user.integrations["telegram"]["longitude"] = str(
+                update.effective_message.location.longitude
+            )
+
+            await session.execute(User.update_integrations(user))
+            await session.commit()
+
+    return _set_location

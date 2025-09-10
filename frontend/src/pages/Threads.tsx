@@ -46,7 +46,6 @@ export default function Threads() {
       }
       const modelCost = costForModel(message.response_metadata.model_name)
 
-      console.log(modelCost, message.response_metadata.model_name)
       if (modelCost) {
         return (
           ((message.usage_metadata?.input_tokens || 0) * modelCost.in) /
@@ -57,7 +56,6 @@ export default function Threads() {
       }
       return 0
     })
-    console.log(costs)
     return costs
   }, [selectedThread])
 
@@ -197,7 +195,7 @@ export default function Threads() {
                             </div>
                           ))}
                         {message.type === 'tool' &&
-                          parseToolContent(message.content).map(
+                          parseToolContent(String(message.content)).map(
                             (toolContent, toolIndex) => (
                               <div
                                 key={`${toolContent.type}-${toolIndex}`}

@@ -73,16 +73,23 @@ export function parseToolContent(content: string): ToolContent[] {
     .split(', ' + type)
     .map((item: string) => {
       const attributes: Map<string, string> = new Map()
-      const matches = [...item.matchAll(/([a-z_]+)='([^']*)'/g)]
-      const matches2 = [...item.matchAll(/([a-z_]+)="([^"]*)"/g)]
-      const matches3 = [...item.matchAll(/([a-z_]+)=(\[.+\])/g)]
+      const regexes = [
+        /([a-z_]+)='([^']*)'/g, // strings single quote
+        /([a-z_]+)="([^"]*)"/g, // strings double quote
+        /([a-z_]+)=(\[.+\])/g, // lists
+        /([a-z_]+)=([0-9\.]+)/g, // numbers
+      ]
+
+      const matches = regexes
+        .map((r) => [...item.matchAll(r)])
+        .reduce((acc, val) => acc.concat(val), [])
       if (!matches) {
         return {
           type,
           attributes,
         }
       }
-      for (const match of matches.concat(matches2).concat(matches3)) {
+      for (const match of matches) {
         attributes.set(match[1], match[2])
       }
       return {

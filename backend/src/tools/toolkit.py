@@ -12,7 +12,7 @@ from tools.calendar import CalendarCreateEventTool, CalendarListEventsTool
 from tools.email import GmailReadUnreadTool
 from tools.graphiti import GraphitiAddEpisode
 from tools.maps.tool import GoogleMapsPlacesSearchTool
-from tools.reddit import RedditSearchTool
+from tools.reddit import RedditDetailsTool, RedditSearchTool
 from tools.scheduler import SchedulerCreateTool
 from tools.search import GoogleSearchTool
 
@@ -53,6 +53,7 @@ class Toolkit:
                 BrowserTool().with_dependencies(self.dependencies),
                 # Reddit tools
                 RedditSearchTool().with_dependencies(self.dependencies),
+                RedditDetailsTool().with_dependencies(self.dependencies),
                 # Google maps
                 GoogleMapsPlacesSearchTool().with_dependencies(self.dependencies),
             ],

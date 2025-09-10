@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass
+from typing import Optional
 
 import aiohttp
 
@@ -8,7 +9,7 @@ import aiohttp
 class Place:
     url: str
     name: str
-    rating: float
+    rating: Optional[float]
     display_name: str
     primary_type: str
     review_summary: str
@@ -63,7 +64,7 @@ class MapsClient:
                 url=place["googleMapsUri"],
                 display_name=place["displayName"]["text"],
                 primary_type=place["primaryType"],
-                rating=place["rating"],
+                rating=place.get("rating"),
                 review_summary="",
             )
             for place in payload["places"]

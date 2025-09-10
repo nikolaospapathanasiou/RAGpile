@@ -1,6 +1,7 @@
 from typing import List, Type
 
 import aiohttp
+from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel
 
 from tools.base import AsyncBaseTool
@@ -21,13 +22,21 @@ class GoogleMapsPlacesSearchTool(AsyncBaseTool):
     )
     args_schema: Type[BaseModel] = PlaceSearchInput
 
-    async def _arun(self, query: str, radius: float = 5000.0, **_kwargs) -> List[Place]:
+    async def _arun(
+        self, config: RunnableConfig, query: str, radius: float = 5000.0, **_kwargs
+    ) -> List[Place]:
+        user = await self.get_user(config)
         async with aiohttp.ClientSession() as session:
             client = MapsClient(
                 session=session, api_key=self.dependencies.google_search_api_key
             )
             return await client.text_search(
                 query=query,
-                location=(52.35102, 4.840184),
+                location=(
+                    (
+                        float(user.integrations["telegram"]["latitude"]),
+                        float(user.integrations["telegram"]["longitude"]),
+                    )
+                ),
                 radius=radius,
             )
