@@ -1,0 +1,38 @@
+[project]
+name = "ragpile-backend"
+version = "0.1.0"
+description = "RAGpile backend API"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi[standard]",
+    "sqlalchemy[asyncio]",
+    "alembic",
+    "openai",
+    "requests",
+    "pyjwt",
+    "asyncpg",
+    "psycopg2-binary",
+    "apscheduler",
+    "langgraph",
+    "langchain[openai,google-genai,anthropic]",
+    "langgraph-checkpoint-postgres",
+    "python-telegram-bot",
+    "neo4j",
+    "google-api-python-client",
+    "beautifulsoup4",
+    "graphiti-core",
+    "asyncpraw",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pylint",
+    "debugpy",
+    "black==25.1.0",
+    "ipython",
+    "pytest",
+    "isort",
+]
+
+[tool.mypy]
+explicit_package_bases = True
